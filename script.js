@@ -11,6 +11,132 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     noWrap: false
 }).addTo(map);
 
+// Initialize location geocoder control
+var geocoder = L.Control.Geocoder.nominatim({
+    geocodingQueryParams: {
+        limit: 5,
+        'accept-language': 'en'
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    var container = document.getElementById('locationGeocoderContainer');
+    if (container) {
+        // Create a proper geocoder input field
+        var geocoderDiv = document.createElement('div');
+        geocoderDiv.className = 'geocoder-input-container';
+        
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Type to search for your birth location...';
+        input.className = 'geocoder-input';
+        input.style.cssText = `
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        `;
+        
+        var resultsDiv = document.createElement('div');
+        resultsDiv.className = 'geocoder-results';
+        resultsDiv.style.cssText = `
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            margin-top: 5px;
+            backdrop-filter: blur(10px);
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        `;
+        
+        geocoderDiv.appendChild(input);
+        geocoderDiv.appendChild(resultsDiv);
+        container.appendChild(geocoderDiv);
+        
+        var timeout;
+        input.addEventListener('input', function() {
+            var query = this.value.trim();
+            clearTimeout(timeout);
+            
+            if (query.length >= 2) {
+                timeout = setTimeout(function() {
+                    searchLocation(query, resultsDiv, input);
+                }, 300);
+            } else {
+                resultsDiv.style.display = 'none';
+            }
+        });
+        
+        // Hide results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!geocoderDiv.contains(e.target)) {
+                resultsDiv.style.display = 'none';
+            }
+        });
+    }
+});
+
+function searchLocation(query, resultsDiv, input) {
+    geocoder.geocode(query, function(results) {
+        resultsDiv.innerHTML = '';
+        if (results && results.length > 0) {
+            resultsDiv.style.display = 'block';
+            
+            results.slice(0, 5).forEach(function(result) {
+                var item = document.createElement('div');
+                item.className = 'geocoder-result-item';
+                item.textContent = result.name;
+                item.style.cssText = `
+                    color: white;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                    padding: 10px 12px;
+                    cursor: pointer;
+                    transition: background 0.2s ease;
+                `;
+                
+                item.addEventListener('mouseenter', function() {
+                    this.style.background = 'rgba(102, 126, 234, 0.3)';
+                });
+                
+                item.addEventListener('mouseleave', function() {
+                    this.style.background = 'transparent';
+                });
+                
+                item.addEventListener('click', function() {
+                    var lat = result.center.lat;
+                    var lon = result.center.lng;
+                    var name = result.name;
+                    
+                    // Update form fields
+                    input.value = name;
+                    document.getElementById('birthLocation').value = name;
+                    document.getElementById('birthLat').value = lat.toFixed(6);
+                    document.getElementById('birthLon').value = lon.toFixed(6);
+                    
+                    // Show coordinates
+                    document.getElementById('coordsGroup').style.display = 'block';
+                    
+                    // Auto-detect timezone
+                    getTimezone(lat, lon);
+                    
+                    resultsDiv.style.display = 'none';
+                    
+                    console.log('Location selected:', name, 'Coordinates:', lat, lon);
+                });
+                
+                resultsDiv.appendChild(item);
+            });
+        } else {
+            resultsDiv.style.display = 'none';
+        }
+    });
+}
+
 var planets = [
     { name: 'Sun', color: '#FFD700', symbol: '☉' },
     { name: 'Moon', color: '#C0C0C0', symbol: '☽' },
@@ -737,21 +863,8 @@ function loadFromUrl() {
     }
 }
 
-// Auto-geocode when location changes
-document.getElementById('birthLocation').addEventListener('input', function() {
-    clearTimeout(this.geocodeTimeout);
-    var self = this;
-    this.geocodeTimeout = setTimeout(function() {
-        geocodeLocation();
-    }, 800); // Reduced from 1000ms for faster response
-});
-
-document.getElementById('birthLocation').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        clearTimeout(this.geocodeTimeout);
-        geocodeLocation();
-    }
-});
+// Geocoding is now handled by Leaflet Control Geocoder
+// Legacy event listeners kept for compatibility
 
 // Toggle technical details visibility
 document.getElementById('toggleTechnical').addEventListener('click', function() {
@@ -766,21 +879,7 @@ document.getElementById('toggleTechnical').addEventListener('click', function() 
 
 // Add event listeners for buttons
 document.getElementById('generateBtn').addEventListener('click', function() {
-    // Check if we need to geocode first
-    var location = document.getElementById('birthLocation').value.trim();
-    var lat = parseFloat(document.getElementById('birthLat').value);
-    var lon = parseFloat(document.getElementById('birthLon').value);
-    
-    if (location && (isNaN(lat) || isNaN(lon))) {
-        // We have a location but no coordinates - need to geocode first
-        geocodeLocation();
-        // Set a timeout to generate map after geocoding
-        setTimeout(function() {
-            generateMap();
-        }, 2000);
-    } else {
-        generateMap();
-    }
+    generateMap();
 });
 document.getElementById('shareBtn').addEventListener('click', shareMap);
 

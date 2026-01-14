@@ -209,6 +209,18 @@ body {
     border-top-color: rgba(0, 0, 0, 0.95) !important;
 }
 
+/* Custom Geocoder Styling */
+.geocoder-input:focus {
+    outline: none !important;
+    border-color: #667eea !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3) !important;
+}
+
+.geocoder-input::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
 @media (max-width: 1024px) {
     .main-content {
         grid-template-columns: 1fr;

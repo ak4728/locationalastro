@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Astrocartography Map Generator</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <link rel="stylesheet" href="styles.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 </head>
 <body>
     <div class="container">
@@ -31,7 +33,8 @@
 
                 <div class="form-group">
                     <label>📍 Birth Location</label>
-                    <input type="text" id="birthLocation" value="Istanbul, Turkey" placeholder="City, Country or specific address" required>
+                    <div id="locationGeocoderContainer"></div>
+                    <input type="text" id="birthLocation" value="Istanbul, Turkey" style="display: none;">
                 </div>
 
                 <div class="form-group" id="coordsGroup" style="display: none;">
