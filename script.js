@@ -358,111 +358,384 @@ function normalize360(deg) {
   return deg;
 }
 
+function jdToDateUTC(jd) {
+  // JD 2440587.5 = Unix epoch in JD
+  return new Date((jd - 2440587.5) * 86400000);
+}
+
+function meanObliquityRad(jd) {
+  // Meeus mean obliquity (good enough here)
+  var T = (jd - 2451545.0) / 36525.0;
+  var epsArcSec = 84381.448 - 46.8150*T - 0.00059*T*T + 0.001813*T*T*T;
+  return (epsArcSec / 3600) * Math.PI / 180;
+}
+
+function equatorialToEcliptic(raDeg, decDeg, jd) {
+  var eps = meanObliquityRad(jd);
+  var a = raDeg * Math.PI / 180;
+  var d = decDeg * Math.PI / 180;
+
+  // Convert unit vector in equatorial to ecliptic
+  var x = Math.cos(d) * Math.cos(a);
+  var y = Math.cos(d) * Math.sin(a);
+  var z = Math.sin(d);
+
+  // Rotate around X-axis by +eps (equatorial -> ecliptic)
+  var y2 = y * Math.cos(eps) + z * Math.sin(eps);
+  var z2 = -y * Math.sin(eps) + z * Math.cos(eps);
+
+  var lon = Math.atan2(y2, x) * 180 / Math.PI;
+  if (lon < 0) lon += 360;
+
+  var lat = Math.asin(z2) * 180 / Math.PI;
+  return { lon: lon, lat: lat };
+}
+
+function ascendantEclLon(latDeg, lonDeg, jd) {
+  // Use LST = GMST + longitude
+  var gmst = getSiderealTime(jd, 0);
+  var lstDeg = normalize360(gmst + lonDeg);
+
+  var eps = meanObliquityRad(jd);
+  var theta = lstDeg * Math.PI / 180;
+  var phi = latDeg * Math.PI / 180;
+
+  // Standard ascendant formula
+  var asc = Math.atan2(
+    Math.sin(theta) * Math.cos(eps) - Math.tan(phi) * Math.sin(eps),
+    Math.cos(theta)
+  );
+
+  var ascDeg = asc * 180 / Math.PI;
+  ascDeg = normalize360(ascDeg);
+  
+  // Quadrant fix: ensure ascendant is the eastern horizon intersection
+  // If asc is on the western side, flip by 180
+  var test = angularDiffDeg(ascDeg, lstDeg);
+  if (test > 0) ascDeg = normalize360(ascDeg + 180);
+  
+  return ascDeg;
+}
+
+function angularDiffDeg(a, b) {
+  // a-b in (-180, +180]
+  return normalize180(a - b);
+}
+
+function solveLongitudeForAscTarget(latDeg, targetAscLon, jd, prevLon) {
+  // scan longitudes, find sign changes, then bisection refine
+  var step = 6;   // degrees - larger step for more robust scanning
+  var roots = [];
+
+  var lon0 = -180;
+  var f0 = angularDiffDeg(ascendantEclLon(latDeg, lon0, jd), targetAscLon);
+
+  for (var lon = lon0 + step; lon <= 180; lon += step) {
+    var f1 = angularDiffDeg(ascendantEclLon(latDeg, lon, jd), targetAscLon);
+
+    // exact hit
+    if (Math.abs(f1) < 0.1) {
+      roots.push(lon);
+      f0 = f1;
+      continue;
+    }
+
+    // sign change means a root in (lon-step, lon)
+    if ((f0 <= 0 && f1 >= 0) || (f0 >= 0 && f1 <= 0)) {
+      var a = lon - step;
+      var b = lon;
+      var fa = f0;
+
+      // Bisection refinement
+      for (var i = 0; i < 25; i++) { // More iterations for precision
+        var m = (a + b) / 2;
+        var fm = angularDiffDeg(ascendantEclLon(latDeg, m, jd), targetAscLon);
+
+        if (Math.abs(fm) < 0.01) break; // Good enough precision
+
+        if ((fa <= 0 && fm >= 0) || (fa >= 0 && fm <= 0)) {
+          b = m;
+        } else {
+          a = m;
+          fa = fm;
+        }
+      }
+      roots.push((a + b) / 2);
+    }
+
+    f0 = f1;
+  }
+
+  if (roots.length === 0) return null;
+
+  // If we have a previous longitude preference (for continuity)
+  if (prevLon !== null && prevLon !== undefined) {
+    var best = roots[0];
+    var bestDist = Math.abs(unwrapLongitude(best, prevLon) - prevLon);
+    for (var r = 1; r < roots.length; r++) {
+      var candidate = unwrapLongitude(roots[r], prevLon);
+      var dist = Math.abs(candidate - prevLon);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = roots[r];
+      }
+    }
+    return best;
+  }
+
+  return roots[0];
+}
+
+// Zodio helpers, compute relocated angles in zodiac, then solve lon where angle equals planet lon
+
+function zodioMcEclLonFromLST(lstDeg, jd) {
+  // MC zodiac longitude depends only on LST and obliquity.
+  // tan(lambda) = tan(LST) / cos(eps)
+  var eps = meanObliquityRad(jd);
+  var th = (normalize360(lstDeg) * Math.PI) / 180;
+
+  var lam = Math.atan2(Math.sin(th) * Math.cos(eps), Math.cos(th)) * 180 / Math.PI;
+  return normalize360(lam);
+}
+
+function zodioAscEclLonFromLST(latDeg, lstDeg, jd) {
+  // Ascendant zodiac longitude, standard formula
+  var eps = meanObliquityRad(jd);
+  var th = (normalize360(lstDeg) * Math.PI) / 180;
+  var phi = (latDeg * Math.PI) / 180;
+
+  var lam = Math.atan2(
+    Math.sin(th) * Math.cos(eps) - Math.tan(phi) * Math.sin(eps),
+    Math.cos(th)
+  ) * 180 / Math.PI;
+
+  lam = normalize360(lam);
+
+  // Ensure we return the Ascendant, not the Descendant, by forcing the eastern intersection.
+  // This stabilizes the curve and prevents branch flips.
+  // If the point is on the western side, flip by 180.
+  var lst = normalize360(lstDeg);
+  var d = normalize180(lam - lst);
+  if (d > 0) lam = normalize360(lam + 180);
+
+  return lam;
+}
+
+function zodioAngleDiffDeg(aDeg, bDeg) {
+  // returns a-b wrapped to (-180, 180]
+  return normalize180(aDeg - bDeg);
+}
+
+function zodioSolveLonForTarget(latDeg, jd, targetEclLon, angleFn, preferLonDeg) {
+  // Scan longitude, bracket sign changes, refine by bisection, choose root closest to preferLonDeg.
+  var gmst = getSiderealTime(jd, 0);
+
+  var step = 2;   // degrees, smaller is smoother, larger is faster
+  var roots = [];
+
+  function f(lonDeg) {
+    var lstDeg = normalize360(gmst + lonDeg);
+    var ang = angleFn(latDeg, lstDeg, jd);             // 0..360
+    return zodioAngleDiffDeg(ang, targetEclLon);       // -180..180
+  }
+
+  var lon0 = -180;
+  var f0 = f(lon0);
+
+  for (var lon = lon0 + step; lon <= 180; lon += step) {
+    var f1 = f(lon);
+
+    // close enough
+    if (Math.abs(f1) < 0.25) {
+      roots.push(lon);
+      f0 = f1;
+      continue;
+    }
+
+    // sign change means root in (lon-step, lon)
+    if ((f0 <= 0 && f1 >= 0) || (f0 >= 0 && f1 <= 0)) {
+      var a = lon - step;
+      var b = lon;
+      var fa = f0;
+
+      for (var i = 0; i < 25; i++) {
+        var m = (a + b) / 2;
+        var fm = f(m);
+
+        if (Math.abs(fm) < 0.01) { a = b = m; break; }
+
+        if ((fa <= 0 && fm >= 0) || (fa >= 0 && fm <= 0)) {
+          b = m;
+        } else {
+          a = m;
+          fa = fm;
+        }
+      }
+
+      roots.push((a + b) / 2);
+    }
+
+    f0 = f1;
+  }
+
+  if (roots.length === 0) return null;
+
+  // Choose best root, closest to preferLonDeg (continuity anchor).
+  var best = roots[0];
+  var bestDist = Math.abs(unwrapLongitude(best, preferLonDeg) - preferLonDeg);
+
+  for (var r = 1; r < roots.length; r++) {
+    var cand = roots[r];
+    var dist = Math.abs(unwrapLongitude(cand, preferLonDeg) - preferLonDeg);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = cand;
+    }
+  }
+
+  return best;
+}
+
+function zodioSolveLonForMC(jd, targetMcLon, preferLonDeg) {
+  // MC does not depend on latitude, so solve lon where MC(lon) = targetMcLon.
+  // Uses same scan and bisection pattern as above.
+  var gmst = getSiderealTime(jd, 0);
+  var step = 2;
+  var roots = [];
+
+  function f(lonDeg) {
+    var lstDeg = normalize360(gmst + lonDeg);
+    var mc = zodioMcEclLonFromLST(lstDeg, jd);
+    return zodioAngleDiffDeg(mc, targetMcLon);
+  }
+
+  var lon0 = -180;
+  var f0 = f(lon0);
+
+  for (var lon = lon0 + step; lon <= 180; lon += step) {
+    var f1 = f(lon);
+
+    if (Math.abs(f1) < 0.25) {
+      roots.push(lon);
+      f0 = f1;
+      continue;
+    }
+
+    if ((f0 <= 0 && f1 >= 0) || (f0 >= 0 && f1 <= 0)) {
+      var a = lon - step;
+      var b = lon;
+      var fa = f0;
+
+      for (var i = 0; i < 25; i++) {
+        var m = (a + b) / 2;
+        var fm = f(m);
+
+        if (Math.abs(fm) < 0.01) { a = b = m; break; }
+
+        if ((fa <= 0 && fm >= 0) || (fa >= 0 && fm <= 0)) {
+          b = m;
+        } else {
+          a = m;
+          fa = fm;
+        }
+      }
+
+      roots.push((a + b) / 2);
+    }
+
+    f0 = f1;
+  }
+
+  if (roots.length === 0) return null;
+
+  var best = roots[0];
+  var bestDist = Math.abs(unwrapLongitude(best, preferLonDeg) - preferLonDeg);
+
+  for (var r = 1; r < roots.length; r++) {
+    var cand = roots[r];
+    var dist = Math.abs(unwrapLongitude(cand, preferLonDeg) - preferLonDeg);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = cand;
+    }
+  }
+
+  return best;
+}
+
 function getPlanetPosition(planetName, jd) {
+    // Keep PoF logic as-is, it will benefit from better Sun/Moon positions.
     if (planetName === 'Part of Fortune') {
         return calculatePartOfFortune(jd);
     }
-    
-    var T = (jd - 2451545.0) / 36525.0;
-    
-    var positions = {
-        'Sun': {
-            L: 280.46646 + 36000.76983 * T + 0.0003032 * T * T,
-            omega: 0,
-            e: 0.016708634 - 0.000042037 * T
-        },
-        'Moon': {
-            L: 218.3165 + 481267.8813 * T,
-            omega: 125.04 - 1934.136 * T,
-            e: 0.0549
-        },
-        'Mercury': {
-            L: 252.25 + 149472.68 * T,
-            omega: 48.33 + 1.186 * T,
-            e: 0.2056
-        },
-        'Venus': {
-            L: 181.98 + 58517.82 * T,
-            omega: 76.68 + 0.902 * T,
-            e: 0.0068
-        },
-        'Mars': {
-            L: 355.43 + 19140.30 * T,
-            omega: 49.56 + 0.772 * T,
-            e: 0.0934
-        },
-        'Jupiter': {
-            L: 34.35 + 3034.91 * T,
-            omega: 100.46 + 1.021 * T,
-            e: 0.0484
-        },
-        'Saturn': {
-            L: 50.08 + 1222.11 * T,
-            omega: 113.67 + 0.877 * T,
-            e: 0.0542
-        },
-        'Uranus': {
-            L: 314.05 + 428.48 * T,
-            omega: 74.01 + 0.521 * T,
-            e: 0.0463
-        },
-        'Neptune': {
-            L: 304.35 + 218.46 * T,
-            omega: 131.78 + 0.685 * T,
-            e: 0.0095
-        },
-        'Pluto': {
-            L: 238.96 + 145.18 * T,
-            omega: 110.30 + 0.387 * T,
-            e: 0.2488
-        },
-        'North Node': {
-            L: 125.04 - 1934.136 * T,
-            omega: 0,
-            e: 0
-        },
-        'Chiron': {
-            L: 50.08 + 2368.34 * T,
-            omega: 339.29 + 0.211 * T,
-            e: 0.3826
-        },
-        'Lilith': {
-            L: 83.35 + 4069.01 * T,
-            omega: 0,
-            e: 0
-        }
-    };
 
-    var planet = positions[planetName];
-    if (!planet) {
-        return { ra: 0, dec: 0 };
+    // Prefer Astronomy Engine for real ephemeris.
+    // It supports: Sun, Moon, Mercury..Pluto.
+    if (typeof Astronomy !== 'undefined') {
+        var supported = {
+            'Sun': 'Sun',
+            'Moon': 'Moon',
+            'Mercury': 'Mercury',
+            'Venus': 'Venus',
+            'Mars': 'Mars',
+            'Jupiter': 'Jupiter',
+            'Saturn': 'Saturn',
+            'Uranus': 'Uranus',
+            'Neptune': 'Neptune',
+            'Pluto': 'Pluto'
+        };
+
+        if (supported[planetName]) {
+            var date = jdToDateUTC(jd);
+            var time = Astronomy.MakeTime(date);
+
+            // Use GeoVector for geocentric coordinates (no observer needed)
+            var geoVec = Astronomy.GeoVector(supported[planetName], time, true); // true for aberration
+            
+            // Convert geocentric vector to RA/Dec manually
+            var ra = Math.atan2(geoVec.y, geoVec.x) * 180 / Math.PI;
+            if (ra < 0) ra += 360;
+            
+            var rho = Math.sqrt(geoVec.x * geoVec.x + geoVec.y * geoVec.y);
+            var dec = Math.atan2(geoVec.z, rho) * 180 / Math.PI;
+
+            var ecl = equatorialToEcliptic(ra, dec, jd);
+
+            return {
+                ra: normalize360(ra),
+                dec: dec,
+                eclLon: normalize360(ecl.lon),
+                eclLat: ecl.lat
+            };
+        }
     }
 
-    var L = planet.L % 360;
-    if (L < 0) L += 360;
+    // Fallback: your old approximation for unsupported points (Node/Lilith/Chiron),
+    // or if Astronomy Engine isn't loaded.
+    var T = (jd - 2451545.0) / 36525.0;
 
-    var lambda = L;
-    var beta = 0;
-    
-    var epsilon = 23.43928;
-    var epsilonRad = epsilon * Math.PI / 180;
-    var lambdaRad = lambda * Math.PI / 180;
-    var betaRad = beta * Math.PI / 180;
+    var positions = {
+        'North Node': { L: 125.04 - 1934.136 * T },
+        'Chiron':     { L: 50.08 + 2368.34 * T },
+        'Lilith':     { L: 83.35 + 4069.01 * T }
+    };
 
-    var raRad = Math.atan2(
-        Math.sin(lambdaRad) * Math.cos(epsilonRad) - Math.tan(betaRad) * Math.sin(epsilonRad),
-        Math.cos(lambdaRad)
-    );
-    var decRad = Math.asin(
-        Math.sin(betaRad) * Math.cos(epsilonRad) + Math.cos(betaRad) * Math.sin(epsilonRad) * Math.sin(lambdaRad)
-    );
+    var p = positions[planetName];
+    if (!p) return { ra: 0, dec: 0, eclLon: 0 };
+
+    var lambda = normalize360(p.L);
+    var eps = meanObliquityRad(jd);
+
+    var lam = lambda * Math.PI / 180;
+    var raRad = Math.atan2(Math.sin(lam) * Math.cos(eps), Math.cos(lam));
+    var decRad = Math.asin(Math.sin(eps) * Math.sin(lam));
 
     var ra = raRad * 180 / Math.PI;
     if (ra < 0) ra += 360;
 
     var dec = decRad * 180 / Math.PI;
 
-    return { ra: ra, dec: dec, eclLon: lambda };
+    return { ra: ra, dec: dec, eclLon: lambda, eclLat: 0 };
 }
 
 function calculatePartOfFortune(jd) {
@@ -547,41 +820,192 @@ function unwrapLongitude(lon, prevLon) {
     return lon;
 }
 
+// Zodio helpers, compute relocated angles in zodiac, then solve lon where angle equals planet lon
+
+function zodioMcEclLonFromLST(lstDeg, jd) {
+  // MC zodiac longitude depends only on LST and obliquity.
+  // tan(lambda) = tan(LST) / cos(eps)
+  var eps = meanObliquityRad(jd);
+  var th = (normalize360(lstDeg) * Math.PI) / 180;
+
+  var lam = Math.atan2(Math.sin(th) * Math.cos(eps), Math.cos(th)) * 180 / Math.PI;
+  return normalize360(lam);
+}
+
+function zodioAscEclLonFromLST(latDeg, lstDeg, jd) {
+  // Ascendant zodiac longitude, standard formula
+  var eps = meanObliquityRad(jd);
+  var th = (normalize360(lstDeg) * Math.PI) / 180;
+  var phi = (latDeg * Math.PI) / 180;
+
+  var lam = Math.atan2(
+    Math.sin(th) * Math.cos(eps) - Math.tan(phi) * Math.sin(eps),
+    Math.cos(th)
+  ) * 180 / Math.PI;
+
+  lam = normalize360(lam);
+
+  // Ensure we return the Ascendant, not the Descendant, by forcing the eastern intersection.
+  // This stabilizes the curve and prevents branch flips.
+  // If the point is on the western side, flip by 180.
+  var lst = normalize360(lstDeg);
+  var d = normalize180(lam - lst);
+  if (d > 0) lam = normalize360(lam + 180);
+
+  return lam;
+}
+
+function zodioAngleDiffDeg(aDeg, bDeg) {
+  // returns a-b wrapped to (-180, 180]
+  return normalize180(aDeg - bDeg);
+}
+
+function zodioSolveLonForTarget(latDeg, jd, targetEclLon, angleFn, preferLonDeg) {
+  // Scan longitude, bracket sign changes, refine by bisection, choose root closest to preferLonDeg.
+  var gmst = getSiderealTime(jd, 0);
+
+  var step = 2;   // degrees, smaller is smoother, larger is faster
+  var roots = [];
+
+  function f(lonDeg) {
+    var lstDeg = normalize360(gmst + lonDeg);
+    var ang = angleFn(latDeg, lstDeg, jd);             // 0..360
+    return zodioAngleDiffDeg(ang, targetEclLon);       // -180..180
+  }
+
+  var lon0 = -180;
+  var f0 = f(lon0);
+
+  for (var lon = lon0 + step; lon <= 180; lon += step) {
+    var f1 = f(lon);
+
+    // close enough
+    if (Math.abs(f1) < 0.25) {
+      roots.push(lon);
+      f0 = f1;
+      continue;
+    }
+
+    // sign change means root in (lon-step, lon)
+    if ((f0 <= 0 && f1 >= 0) || (f0 >= 0 && f1 <= 0)) {
+      var a = lon - step;
+      var b = lon;
+      var fa = f0;
+
+      for (var i = 0; i < 25; i++) {
+        var m = (a + b) / 2;
+        var fm = f(m);
+
+        if (Math.abs(fm) < 0.01) { a = b = m; break; }
+
+        if ((fa <= 0 && fm >= 0) || (fa >= 0 && fm <= 0)) {
+          b = m;
+        } else {
+          a = m;
+          fa = fm;
+        }
+      }
+
+      roots.push((a + b) / 2);
+    }
+
+    f0 = f1;
+  }
+
+  if (roots.length === 0) return null;
+
+  // Choose best root, closest to preferLonDeg (continuity anchor).
+  var best = roots[0];
+  var bestDist = Math.abs(unwrapLongitude(best, preferLonDeg) - preferLonDeg);
+
+  for (var r = 1; r < roots.length; r++) {
+    var cand = roots[r];
+    var dist = Math.abs(unwrapLongitude(cand, preferLonDeg) - preferLonDeg);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = cand;
+    }
+  }
+
+  return best;
+}
+
+function zodioSolveLonForMC(jd, targetMcLon, preferLonDeg) {
+  // MC does not depend on latitude, so solve lon where MC(lon) = targetMcLon.
+  // Uses same scan and bisection pattern as above.
+  var gmst = getSiderealTime(jd, 0);
+  var step = 2;
+  var roots = [];
+
+  function f(lonDeg) {
+    var lstDeg = normalize360(gmst + lonDeg);
+    var mc = zodioMcEclLonFromLST(lstDeg, jd);
+    return zodioAngleDiffDeg(mc, targetMcLon);
+  }
+
+  var lon0 = -180;
+  var f0 = f(lon0);
+
+  for (var lon = lon0 + step; lon <= 180; lon += step) {
+    var f1 = f(lon);
+
+    if (Math.abs(f1) < 0.25) {
+      roots.push(lon);
+      f0 = f1;
+      continue;
+    }
+
+    if ((f0 <= 0 && f1 >= 0) || (f0 >= 0 && f1 <= 0)) {
+      var a = lon - step;
+      var b = lon;
+      var fa = f0;
+
+      for (var i = 0; i < 25; i++) {
+        var m = (a + b) / 2;
+        var fm = f(m);
+
+        if (Math.abs(fm) < 0.01) { a = b = m; break; }
+
+        if ((fa <= 0 && fm >= 0) || (fa >= 0 && fm <= 0)) {
+          b = m;
+        } else {
+          a = m;
+          fa = fm;
+        }
+      }
+
+      roots.push((a + b) / 2);
+    }
+
+    f0 = f1;
+  }
+
+  if (roots.length === 0) return null;
+
+  var best = roots[0];
+  var bestDist = Math.abs(unwrapLongitude(best, preferLonDeg) - preferLonDeg);
+
+  for (var r = 1; r < roots.length; r++) {
+    var cand = roots[r];
+    var dist = Math.abs(unwrapLongitude(cand, preferLonDeg) - preferLonDeg);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = cand;
+    }
+  }
+
+  return best;
+}
+
 
 
 function calculateAstrocartographyLine(planetPos, birthLat, lineType, lst, jd) {
-    // Get coordinate system preference
-    var coordSystem = document.getElementById('coordinateSystem').value;
-    
+    // Pure Mundo (Local Space) system using astronomical rise/set calculations
     // GMST in degrees, using existing sidereal function at Greenwich longitude 0
     var gmst = getSiderealTime(jd, 0);
 
     var raDeg = normalize360(planetPos.ra);
     var decDeg = planetPos.dec;
-    
-    // Apply coordinate system transformation
-    if (coordSystem === 'mundo') {
-        // Mundo (Local Space): Use local horizon coordinates
-        // This is the traditional "relocational" astrology approach
-        console.log('Using Mundo system (Local Space) - horizon-based coordinates');
-    } else {
-        // Zodio (In Zodiac): Use zodiacal coordinates (default)
-        // This matches most online astrology sites like Astro-Seek
-        console.log('Using Zodio system (In Zodiac) - zodiacal coordinates');
-        
-        // In Zodio system, we apply a small adjustment for ecliptic projection
-        // This better matches commercial astrocartography software
-        var eclipticObliquity = 23.4367; // Mean obliquity for J2000
-        var eclipticRad = eclipticObliquity * Math.PI / 180;
-        
-        // Small adjustment for zodiacal projection
-        if (Math.abs(decDeg) > 60) {
-            // For high declination planets, apply zodiacal correction
-            var adjustment = Math.sin(eclipticRad) * Math.sin(decDeg * Math.PI / 180) * 2;
-            raDeg = normalize360(raDeg + adjustment);
-        }
-    }
-    
     var decRad = decDeg * Math.PI / 180;
 
     var points = [];
@@ -636,6 +1060,69 @@ function calculateAstrocartographyLine(planetPos, birthLat, lineType, lst, jd) {
     return null;
 }
 
+// Calculate aspectary lines (90°, 120°, etc. aspects to chart angles)
+function calculateAspectaryLine(planetPos, angleType, jd, aspectDegrees) {
+    var points = [];
+    var gmst = getSiderealTime(jd, 0);
+    var planetRA = normalize360(planetPos.ra);
+    var planetDec = planetPos.dec;
+    var decRad = planetDec * Math.PI / 180;
+    
+    // For aspectary lines, we find where the planet forms the specified aspect 
+    // to the chart angle (AC or MC) at each latitude
+    
+    if (angleType === 'AC') {
+        // Square aspect to Ascendant: where planet is 90° from rising
+        var maxLat = Math.min(89, 90 - Math.abs(planetDec));
+        var prevLon = null;
+        
+        for (var lat = -maxLat; lat <= maxLat; lat += 0.5) {
+            var latRad = lat * Math.PI / 180;
+            var cosH0 = -Math.tan(latRad) * Math.tan(decRad);
+            
+            if (cosH0 < -1 || cosH0 > 1) continue;
+            
+            var H0deg = Math.acos(cosH0) * 180 / Math.PI;
+            var risingLST = planetRA - H0deg;
+            
+            // Add/subtract aspect degrees to find aspectary longitude
+            var aspectLST1 = normalize360(risingLST + aspectDegrees);
+            var aspectLST2 = normalize360(risingLST - aspectDegrees);
+            
+            var lon1 = normalize180(aspectLST1 - gmst);
+            var lon2 = normalize180(aspectLST2 - gmst);
+            
+            // Choose the longitude with better continuity
+            var bestLon = (prevLon === null) ? lon1 : 
+                (Math.abs(unwrapLongitude(lon1, prevLon) - prevLon) < 
+                 Math.abs(unwrapLongitude(lon2, prevLon) - prevLon)) ? lon1 : lon2;
+            
+            bestLon = unwrapLongitude(bestLon, prevLon);
+            prevLon = bestLon;
+            
+            points.push([lat, bestLon]);
+        }
+    } else if (angleType === 'MC') {
+        // Square aspect to Midheaven: 90° from culmination
+        var aspectRA1 = normalize360(planetRA + aspectDegrees);
+        var aspectRA2 = normalize360(planetRA - aspectDegrees);
+        
+        var lon1 = normalize180(aspectRA1 - gmst);
+        var lon2 = normalize180(aspectRA2 - gmst);
+        
+        // Return TWO separate lines, not one combined line
+        var lineA = [];
+        var lineB = [];
+        
+        for (var lat = -80; lat <= 80; lat += 2) lineA.push([lat, lon1]);
+        for (var lat = -80; lat <= 80; lat += 2) lineB.push([lat, lon2]);
+        
+        return [lineA, lineB];
+    }
+    
+    return points.length > 5 ? points : null;
+}
+
 // Convert ecliptic longitude to Right Ascension (assuming beta = 0)
 function eclLonToRAdeg(lambdaDeg) {
     var eps = 23.43928 * Math.PI / 180; // obliquity
@@ -645,72 +1132,35 @@ function eclLonToRAdeg(lambdaDeg) {
     return ra;
 }
 
-// Zodio coordinate system - uses relocated chart angles in zodiac coordinates
-// This corresponds 1:1 to relocation charts (not astronomical visibility)
 function calculateZodioLine(planetPos, birthLat, lineType, jd, tzOffset) {
-    console.log('Calculating Zodio line for', lineType, 'using pure zodiacal mathematics');
-    
+    console.log('Calculating Zodio', lineType, 'for', planetPos.eclLon ? 'eclLon=' + planetPos.eclLon.toFixed(2) : 'ra=' + planetPos.ra.toFixed(2));
     var points = [];
-    var gmst = getSiderealTime(jd, 0);
-    var eclLon = normalize360(planetPos.eclLon !== undefined ? planetPos.eclLon : planetPos.ra);
-    
-    // Pure zodiacal system: calculate relocated chart angles in ecliptic coordinates
+
     if (lineType === 'MC' || lineType === 'IC') {
-        // MC/IC: Direct zodiacal longitude calculation
-        var targetEclLon = (lineType === 'MC') ? eclLon : normalize360(eclLon + 180);
-        var raNeeded = eclLonToRAdeg(targetEclLon);
-        var lon = normalize180(raNeeded - gmst);
+        // MC/IC based on planet = relocated MC in zodiac
+        var targetMcLon = (lineType === 'MC') ? planetPos.eclLon : normalize360(planetPos.eclLon + 180);
         
-        for (var lat = -80; lat <= 80; lat += 2) {
-            points.push([lat, lon]);
+        for (var lat = -80; lat <= 80; lat += 1) {
+            var lon = zodioSolveLonForTarget(lat, jd, targetMcLon, zodioMcEclLonFromLST, null);
+            if (lon !== null) points.push([lat, lon]);
         }
         
-        console.log('Zodio', lineType, 'eclLon:', eclLon.toFixed(2), '°');
+        console.log('Zodio', lineType, 'found', points.length, 'points (MC in zodiac =', targetMcLon.toFixed(2) + '°)');
         return points.length > 5 ? points : null;
     }
-    
-    // AC/DC: Pure zodiacal relocation mathematics
+
     if (lineType === 'AC' || lineType === 'DC') {
-        console.log('Zodio', lineType, 'using pure ecliptic coordinate relocation');
+        // AC/DC based on planet = relocated AC/DC in zodiac
+        var targetAscLon = (lineType === 'AC') ? planetPos.eclLon : normalize360(planetPos.eclLon + 180);
         
-        for (var lat = -70; lat <= 70; lat += 1) {
-            var latRad = lat * Math.PI / 180;
-            
-            // Calculate local sidereal time where planet's ecliptic longitude 
-            // equals the relocated ascendant's ecliptic longitude
-            var obliquity = 23.43928 * Math.PI / 180;
-            
-            // For zodiacal AC: where planet eclLon = relocated ASC eclLon
-            // This is fundamentally different from astronomical rise/set
-            var eclLonRad = eclLon * Math.PI / 180;
-            
-            // Zodiacal ascendant calculation using ecliptic coordinates
-            // ASC ecliptic longitude varies with latitude in zodiacal system
-            var tanAsc = Math.cos(eclLonRad) / (Math.sin(eclLonRad) * Math.cos(obliquity) - Math.tan(latRad) * Math.sin(obliquity));
-            var ascEclLon = Math.atan(tanAsc) * 180 / Math.PI;
-            
-            if (eclLonRad > Math.PI / 2 && eclLonRad < 3 * Math.PI / 2) {
-                ascEclLon += 180;
-            }
-            ascEclLon = normalize360(ascEclLon);
-            
-            // For DC, add 180 degrees
-            if (lineType === 'DC') {
-                ascEclLon = normalize360(ascEclLon + 180);
-            }
-            
-            // Convert to RA and then to longitude
-            var raNeeded = eclLonToRAdeg(ascEclLon);
-            var lon = normalize180(raNeeded - gmst);
-            
-            points.push([lat, lon]);
+        for (var lat = -80; lat <= 80; lat += 1) {
+            var lon = zodioSolveLonForTarget(lat, jd, targetAscLon, zodioAscEclLonFromLST, null);
+            if (lon !== null) points.push([lat, lon]);
         }
         
-        console.log('Zodio', lineType, 'calculated', points.length, 'points using ecliptic math');
+        console.log('Zodio', lineType, 'found', points.length, 'points (AC in zodiac =', targetAscLon.toFixed(2) + '°)');
         return points.length > 5 ? points : null;
     }
-    
-    return null;
 }
 
 function generateMap() {
@@ -788,6 +1238,64 @@ function generateMap() {
                 opacity: 0.8,
                 smoothFactor: 1.2
             }).addTo(map);
+
+            // Add aspectary lines for Zodio mode (90° squares)
+            if (document.getElementById('coordinateSystem').value === 'zodio' && 
+                (lineType === 'AC' || lineType === 'MC')) {
+                
+                // Calculate 90° aspectary lines (squares)
+                var aspectPoints = calculateAspectaryLine(planetPos, lineType, jd, 90);
+                console.log('Aspectary points for', planet.name, lineType, ':', aspectPoints);
+                
+                function drawAspectPolyline(pts, planet, lineType) {
+                    if (!pts || !Array.isArray(pts) || pts.length === 0) {
+                        console.log('Invalid aspectary points for', planet.name, lineType, ':', pts);
+                        return;
+                    }
+                    
+                    // Validate that all points are valid [lat, lon] pairs
+                    for (var i = 0; i < pts.length; i++) {
+                        if (!Array.isArray(pts[i]) || pts[i].length !== 2 || 
+                            typeof pts[i][0] !== 'number' || typeof pts[i][1] !== 'number' ||
+                            isNaN(pts[i][0]) || isNaN(pts[i][1])) {
+                            console.log('Invalid point at index', i, ':', pts[i]);
+                            return;
+                        }
+                    }
+                    
+                    var aspectLine = L.polyline(pts, {
+                        color: planet.color,
+                        weight: 1.5,
+                        opacity: 0.4,
+                        dashArray: '8,4',
+                        smoothFactor: 1.2
+                    }).addTo(map);
+                    
+                    aspectLine.bindTooltip(
+                        '<div style="max-width: 200px; font-size: 0.85em;">' +
+                        '<strong style="color: ' + planet.color + ';">' + planet.symbol + ' ' + planet.name + ' Square</strong><br>' +
+                        '90° aspectary line to ' + lineType +
+                        '</div>',
+                        { permanent: false, direction: 'auto', className: 'custom-tooltip' }
+                    );
+                    
+                    currentLines.push(aspectLine);
+                }
+                
+                if (aspectPoints && Array.isArray(aspectPoints)) {
+                    if (aspectPoints.length > 0 && Array.isArray(aspectPoints[0])) {
+                        // Multiple polylines (MC case) - aspectPoints is array of arrays
+                        console.log('Drawing multiple aspectary lines for', planet.name, lineType);
+                        for (var a = 0; a < aspectPoints.length; a++) {
+                            drawAspectPolyline(aspectPoints[a], planet, lineType);
+                        }
+                    } else if (aspectPoints.length > 0 && !Array.isArray(aspectPoints[0])) {
+                        // Single polyline (AC case) - aspectPoints is array of [lat, lon] pairs
+                        console.log('Drawing single aspectary line for', planet.name, lineType);
+                        drawAspectPolyline(aspectPoints, planet, lineType);
+                    }
+                }
+            }
 
             var interpretation = interpretations[planet.name] && interpretations[planet.name][lineType] 
                 ? interpretations[planet.name][lineType] 
@@ -907,6 +1415,8 @@ function generateMap() {
 
     // Add planetary position markers (where each planet is overhead at birth time)
     console.log('Adding planetary position markers...');
+    var gmst = getSiderealTime(jd, 0); // Define gmst for planetary position calculations
+    
     for (var i = 0; i < planets.length; i++) {
         var planet = planets[i];
         var planetPos = getPlanetPosition(planet.name, jd);
@@ -916,18 +1426,21 @@ function generateMap() {
         var planetLon = normalize180(planetPos.ra - gmst);
         var planetLat = planetPos.dec;
         
+        console.log(planet.name + ' overhead at:', planetLat.toFixed(2) + '°, ' + planetLon.toFixed(2) + '°');
+        
         // Only show if within reasonable bounds
         if (Math.abs(planetLat) <= 80) {
+            // Simpler, more visible icon
             var planetLocationIcon = L.divIcon({
-                html: '<div style="background: ' + planet.color + '; color: white; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border: 1px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.4); position: relative;"><div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 14px; text-shadow: 0 0 3px rgba(0,0,0,0.8);">' + planet.symbol + '</div></div>',
+                html: '<div style="background: ' + planet.color + '; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.5);">' + planet.symbol + '</div>',
                 className: 'planet-position-icon',
-                iconSize: [16, 16],
-                iconAnchor: [8, 8]
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
             });
             
             var planetMarker = L.marker([planetLat, planetLon], {
                 icon: planetLocationIcon,
-                zIndexOffset: 900
+                zIndexOffset: 1500
             }).addTo(map);
             
             var planetTooltipContent = '<div style="text-align: center; font-size: 0.9em;">' +
@@ -944,6 +1457,9 @@ function generateMap() {
             });
             
             currentLines.push(planetMarker);
+            console.log('Added marker for', planet.name, 'at', planetLat, planetLon);
+        } else {
+            console.log(planet.name + ' is outside visible bounds (lat=' + planetLat.toFixed(2) + ')');
         }
     }
 
