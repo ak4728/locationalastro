@@ -429,14 +429,6 @@ function generateMap() {
     var lon = parseFloat(document.getElementById('birthLon').value);
     var tzOffset = parseFloat(document.getElementById('tzOffset').value);
 
-    console.log('Validation check:', {
-        dateStr: dateStr,
-        timeStr: timeStr, 
-        lat: lat,
-        lon: lon,
-        tzOffset: tzOffset
-    });
-
     if (!dateStr || !timeStr) {
         alert('Please fill in birth date and time');
         return;
@@ -624,12 +616,9 @@ function geocodeLocation() {
     
     var geocodeUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(location) + '&limit=1';
     
-    console.log('Geocoding:', location, 'URL:', geocodeUrl);
-    
     fetch(geocodeUrl)
         .then(function(response) { return response.json(); })
         .then(function(data) {
-            console.log('Geocoding result:', data);
             if (data && data.length > 0) {
                 var lat = parseFloat(data[0].lat);
                 var lon = parseFloat(data[0].lon);
@@ -642,7 +631,6 @@ function geocodeLocation() {
                 // Auto-detect timezone
                 getTimezone(lat, lon);
                 
-                console.log('Geocoding successful. New coordinates:', lat, lon);
                 
             } else {
                 console.log('Location not found:', location);
@@ -785,7 +773,6 @@ document.getElementById('generateBtn').addEventListener('click', function() {
     
     if (location && (isNaN(lat) || isNaN(lon))) {
         // We have a location but no coordinates - need to geocode first
-        console.log('Need to geocode before generating map');
         geocodeLocation();
         // Set a timeout to generate map after geocoding
         setTimeout(function() {
@@ -798,16 +785,19 @@ document.getElementById('generateBtn').addEventListener('click', function() {
 document.getElementById('shareBtn').addEventListener('click', shareMap);
 
 window.addEventListener('load', function() {
-    // Trigger geocoding for default location instead of hardcoding coordinates
+    // Always set default Istanbul coordinates immediately as fallback
+    document.getElementById('birthLat').value = '41.016667';
+    document.getElementById('birthLon').value = '28.950000';
+    document.getElementById('tzOffset').value = '3';
+    document.getElementById('tzDisplay').value = 'Turkey Time (UTC+3)';
+    
+    // Then try to improve them with geocoding if we have a location
     var defaultLocation = document.getElementById('birthLocation').value;
     if (defaultLocation) {
-        geocodeLocation();
-    } else {
-        // Fallback to Istanbul only if no location is set
-        document.getElementById('birthLat').value = '41.016667';
-        document.getElementById('birthLon').value = '28.950000';
-        document.getElementById('tzOffset').value = '3';
-        document.getElementById('tzDisplay').value = 'Turkey Time (UTC+3)';
+        // Don't wait for geocoding - coordinates are already set as fallback
+        setTimeout(function() {
+            geocodeLocation();
+        }, 100); // Small delay to ensure page is fully loaded
     }
     
     loadFromUrl();
