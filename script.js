@@ -1136,29 +1136,55 @@ function calculateZodioLine(planetPos, birthLat, lineType, jd, tzOffset) {
     console.log('Calculating Zodio', lineType, 'for', planetPos.eclLon ? 'eclLon=' + planetPos.eclLon.toFixed(2) : 'ra=' + planetPos.ra.toFixed(2));
     var points = [];
 
+    var planetLon = normalize360(
+        planetPos.eclLon !== undefined ? planetPos.eclLon : planetPos.ra
+    );
+
+    // MC / IC (no latitude dependence)
     if (lineType === 'MC' || lineType === 'IC') {
-        // MC/IC based on planet = relocated MC in zodiac
-        var targetMcLon = (lineType === 'MC') ? planetPos.eclLon : normalize360(planetPos.eclLon + 180);
-        
-        for (var lat = -80; lat <= 80; lat += 1) {
-            var lon = zodioSolveLonForTarget(lat, jd, targetMcLon, zodioMcEclLonFromLST, null);
-            if (lon !== null) points.push([lat, lon]);
+        var targetMc = (lineType === 'MC') ? planetLon : normalize360(planetLon + 180);
+
+        var lon = zodioSolveLonForMC(jd, targetMc, 0);
+        if (lon === null) return null;
+
+        lon = normalize180(lon);
+
+        for (var lat = -80; lat <= 80; lat += 2) {
+            points.push([lat, lon]);
         }
-        
-        console.log('Zodio', lineType, 'found', points.length, 'points (MC in zodiac =', targetMcLon.toFixed(2) + '°)');
-        return points.length > 5 ? points : null;
+        console.log('Zodio', lineType, 'found', points.length, 'points (MC in zodiac =', targetMc.toFixed(2) + '°)');
+        return points;
     }
 
+    // AC / DC (latitude dependent)
     if (lineType === 'AC' || lineType === 'DC') {
-        // AC/DC based on planet = relocated AC/DC in zodiac
-        var targetAscLon = (lineType === 'AC') ? planetPos.eclLon : normalize360(planetPos.eclLon + 180);
-        
+        var targetAsc = (lineType === 'AC') ? planetLon : normalize360(planetLon + 180);
+
+        var prevLon = null;
+
         for (var lat = -80; lat <= 80; lat += 1) {
-            var lon = zodioSolveLonForTarget(lat, jd, targetAscLon, zodioAscEclLonFromLST, null);
-            if (lon !== null) points.push([lat, lon]);
+            if (Math.abs(lat) > 85) continue;
+
+            var prefer = (prevLon === null) ? 0 : prevLon;
+
+            var lon2 = zodioSolveLonForTarget(
+                lat,
+                jd,
+                targetAsc,
+                zodioAscEclLonFromLST,
+                prefer
+            );
+
+            if (lon2 === null) continue;
+
+            lon2 = normalize180(lon2);
+            lon2 = unwrapLongitude(lon2, prevLon);
+            prevLon = lon2;
+
+            points.push([lat, lon2]);
         }
-        
-        console.log('Zodio', lineType, 'found', points.length, 'points (AC in zodiac =', targetAscLon.toFixed(2) + '°)');
+
+        console.log('Zodio', lineType, 'found', points.length, 'points (AC in zodiac =', targetAsc.toFixed(2) + '°)');
         return points.length > 5 ? points : null;
     }
 }
