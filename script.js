@@ -638,6 +638,11 @@ document.getElementById('birthLocation').addEventListener('keypress', function(e
     }
 });
 
+// Add event listeners for buttons
+document.getElementById('geocodeBtn').addEventListener('click', geocodeLocation);
+document.getElementById('generateBtn').addEventListener('click', generateMap);
+document.getElementById('shareBtn').addEventListener('click', shareMap);
+
 window.addEventListener('load', function() {
     loadFromUrl();
 });
