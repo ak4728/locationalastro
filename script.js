@@ -524,24 +524,6 @@ function calculateAstrocartographyLine(planetPos, birthLat, lineType, lst, jd) {
             points.push([lat, lon]);
         }
 
-        // For better polar convergence, add additional points near the limits
-        if (points.length > 0 && Math.abs(decDeg) < 60) {
-            var extendedMaxLat = Math.min(85, maxLat + 10);
-            for (var lat = maxLat + 0.5; lat <= extendedMaxLat; lat += 2) {
-                var latRad = lat * Math.PI / 180;
-                var cosH0 = -Math.tan(latRad) * Math.tan(decRad);
-                
-                if (cosH0 >= -1 && cosH0 <= 1) {
-                    var H0deg = Math.acos(cosH0) * 180 / Math.PI;
-                    var lstNeeded = (lineType === 'AC') ? (raDeg - H0deg) : (raDeg + H0deg);
-                    var lon = normalize180(lstNeeded - gmst);
-                    lon = unwrapLongitude(lon, prevLon);
-                    prevLon = lon;
-                    points.push([lat, lon]);
-                }
-            }
-        }
-
         return points.length > 5 ? points : null;
     }
 
@@ -853,10 +835,23 @@ function loadFromUrl() {
     
     if (urlParams.get('date')) document.getElementById('birthDate').value = urlParams.get('date');
     if (urlParams.get('time')) document.getElementById('birthTime').value = urlParams.get('time');
-    if (urlParams.get('location')) document.getElementById('birthLocation').value = urlParams.get('location');
-    if (urlParams.get('lat')) document.getElementById('birthLat').value = urlParams.get('lat');
-    if (urlParams.get('lon')) document.getElementById('birthLon').value = urlParams.get('lon');
-    if (urlParams.get('tz')) document.getElementById('tzOffset').value = urlParams.get('tz');
+    if (urlParams.get('location')) {
+        document.getElementById('birthLocation').value = urlParams.get('location');
+        var geoInput = document.querySelector('.geocoder-input');
+        if (geoInput) geoInput.value = urlParams.get('location');
+    }
+    if (urlParams.get('lat')) {
+        document.getElementById('birthLat').value = urlParams.get('lat');
+        document.getElementById('coordsGroup').style.display = 'block';
+    }
+    if (urlParams.get('lon')) {
+        document.getElementById('birthLon').value = urlParams.get('lon');
+        document.getElementById('coordsGroup').style.display = 'block';
+    }
+    if (urlParams.get('tz')) {
+        document.getElementById('tzOffset').value = urlParams.get('tz');
+        document.getElementById('timezoneGroup').style.display = 'block';
+    }
     
     if (urlParams.has('date') && urlParams.has('time')) {
         setTimeout(generateMap, 500);
@@ -884,20 +879,24 @@ document.getElementById('generateBtn').addEventListener('click', function() {
 document.getElementById('shareBtn').addEventListener('click', shareMap);
 
 window.addEventListener('load', function() {
-    // Always set default Istanbul coordinates immediately as fallback
-    document.getElementById('birthLat').value = '41.016667';
-    document.getElementById('birthLon').value = '28.950000';
-    document.getElementById('tzOffset').value = '3';
-    document.getElementById('tzDisplay').value = 'Turkey Time (UTC+3)';
-    
-    // Then try to improve them with geocoding if we have a location
-    var defaultLocation = document.getElementById('birthLocation').value;
-    if (defaultLocation) {
-        // Don't wait for geocoding - coordinates are already set as fallback
-        setTimeout(function() {
-            geocodeLocation();
-        }, 100); // Small delay to ensure page is fully loaded
-    }
-    
     loadFromUrl();
+    
+    var lat = parseFloat(document.getElementById('birthLat').value);
+    var lon = parseFloat(document.getElementById('birthLon').value);
+    
+    if (isNaN(lat) || isNaN(lon)) {
+        // Set default values for Istanbul, Turkey
+        document.getElementById('birthLat').value = '41.016667';
+        document.getElementById('birthLon').value = '28.950000';
+        document.getElementById('tzOffset').value = '3';
+        document.getElementById('tzDisplay').value = 'Turkey Time (UTC+3)';
+        
+        // Try to improve with geocoding if we have a location
+        var defaultLocation = document.getElementById('birthLocation').value;
+        if (defaultLocation) {
+            setTimeout(function() {
+                geocodeLocation();
+            }, 100);
+        }
+    }
 });

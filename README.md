@@ -6,7 +6,7 @@ A comprehensive interactive web application that generates professional astrocar
 
 ### 🌍 Interactive Mapping
 - Zoomable/pannable world map with Leaflet.js
-- Proper curved astrocartography lines (not parallel lines!)
+- **AC/DC curved lines and MC/IC straight longitude lines** for accurate astrocartography
 - Floating legend with toggle control
 - Mobile-optimized responsive design
 
