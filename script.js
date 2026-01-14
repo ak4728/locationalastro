@@ -1158,7 +1158,7 @@ function calculateZodioLine(planetPos, birthLat, lineType, jd, tzOffset) {
 
     // AC / DC (latitude dependent)
     if (lineType === 'AC' || lineType === 'DC') {
-        var targetAsc = (lineType === 'AC') ? planetLon : normalize360(planetLon + 180);
+        var targetAsc = (lineType === 'AC') ? planetLon : normalize360(planetLon - 180);
 
         var prevLon = null;
 
@@ -1265,7 +1265,8 @@ function generateMap() {
                 smoothFactor: 1.2
             }).addTo(map);
 
-            // Add aspectary lines for Zodio mode (90° squares)
+            // Add aspectary lines for Zodio mode (90° squares) - TEMPORARILY DISABLED FOR DEBUGGING
+            /*
             if (document.getElementById('coordinateSystem').value === 'zodio' && 
                 (lineType === 'AC' || lineType === 'MC')) {
                 
@@ -1322,6 +1323,7 @@ function generateMap() {
                     }
                 }
             }
+            */
 
             var interpretation = interpretations[planet.name] && interpretations[planet.name][lineType] 
                 ? interpretations[planet.name][lineType] 
