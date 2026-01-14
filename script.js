@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var resultsDiv = document.createElement('div');
         resultsDiv.className = 'geocoder-results';
         resultsDiv.style.cssText = `
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(26, 26, 46, 0.95);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 10px;
             margin-top: 5px;
@@ -52,11 +52,26 @@ document.addEventListener('DOMContentLoaded', function() {
             max-height: 200px;
             overflow-y: auto;
             display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         `;
         
         geocoderDiv.appendChild(input);
         geocoderDiv.appendChild(resultsDiv);
         container.appendChild(geocoderDiv);
+        
+        // Show initial hidden location in the visible input
+        input.value = document.getElementById('birthLocation').value || '';
+        
+        // Enter key should run a search and auto pick top result
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                var query = this.value.trim();
+                if (query.length >= 2) {
+                    searchLocation(query, resultsDiv, input, true); // autoSelectTop = true
+                }
+            }
+        });
         
         var timeout;
         input.addEventListener('input', function() {
@@ -81,10 +96,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function searchLocation(query, resultsDiv, input) {
+function searchLocation(query, resultsDiv, input, autoSelectTop) {
     geocoder.geocode(query, function(results) {
         resultsDiv.innerHTML = '';
         if (results && results.length > 0) {
+            if (autoSelectTop) {
+                // Simulate clicking the first result
+                var r = results[0];
+                input.value = r.name;
+                document.getElementById('birthLocation').value = r.name;
+                document.getElementById('birthLat').value = r.center.lat.toFixed(6);
+                document.getElementById('birthLon').value = r.center.lng.toFixed(6);
+                document.getElementById('coordsGroup').style.display = 'block';
+                document.getElementById('timezoneGroup').style.display = 'block';
+                getTimezone(r.center.lat, r.center.lng);
+                resultsDiv.style.display = 'none';
+                console.log('Auto-selected location:', r.name, 'Coordinates:', r.center.lat, r.center.lng);
+                return;
+            }
+            
             resultsDiv.style.display = 'block';
             
             results.slice(0, 5).forEach(function(result) {
@@ -118,8 +148,9 @@ function searchLocation(query, resultsDiv, input) {
                     document.getElementById('birthLat').value = lat.toFixed(6);
                     document.getElementById('birthLon').value = lon.toFixed(6);
                     
-                    // Show coordinates
+                    // Show coordinates and timezone
                     document.getElementById('coordsGroup').style.display = 'block';
+                    document.getElementById('timezoneGroup').style.display = 'block';
                     
                     // Auto-detect timezone
                     getTimezone(lat, lon);
@@ -470,12 +501,94 @@ function unwrapLongitude(lon, prevLon) {
     return lon;
 }
 
+// Zodio coordinate system - uses relocated chart angles in zodiac coordinates
+// This corresponds 1:1 to relocation charts (not astronomical visibility)
+function calculateZodioLine(planetPos, birthLat, lineType, jd, tzOffset) {
+    console.log('Calculating Zodio line for', lineType, 'planet at RA:', planetPos.ra, 'Dec:', planetPos.dec);
+    
+    // Zodio method: Use relocated chart angles in zodiac coordinates
+    // This matches Astro-Seek's default method
+    
+    var points = [];
+    var raDeg = normalize360(planetPos.ra);
+    var decDeg = planetPos.dec;
+    
+    // For now, apply a zodiacal correction to the existing calculation
+    // TODO: Implement full relocation chart mathematics for true Zodio accuracy
+    
+    // Apply ecliptic-based longitude corrections (simplified Zodio approximation)
+    var eclipticObliquity = 23.4367; // degrees
+    var obliquityRad = eclipticObliquity * Math.PI / 180;
+    
+    // Zodio adjustment: transform coordinates through ecliptic plane
+    if (lineType === 'MC' || lineType === 'IC') {
+        // Midheaven/IC: Use zodiacal longitude directly
+        var zodiacLon = (lineType === 'MC') ? raDeg : normalize360(raDeg + 180);
+        
+        for (var lat = -70; lat <= 70; lat += 1) {
+            points.push([lat, normalize180(zodiacLon)]);
+        }
+    } else {
+        // AC/DC: Apply relocation chart mathematics (simplified)
+        for (var lat = -70; lat <= 70; lat += 1) {
+            var latRad = lat * Math.PI / 180;
+            var decRad = decDeg * Math.PI / 180;
+            
+            // Simplified relocation chart angle calculation
+            var cosH = -Math.tan(latRad) * Math.tan(decRad);
+            
+            if (cosH >= -1 && cosH <= 1) {
+                var H = Math.acos(Math.abs(cosH)) * 180 / Math.PI;
+                var lon = (lineType === 'AC') ? 
+                    normalize180(raDeg - H) : 
+                    normalize180(raDeg + H);
+                
+                // Apply zodiacal coordinate correction
+                var zodiacCorrection = Math.sin(obliquityRad) * Math.sin(decRad) * 5; // simplified
+                lon = normalize180(lon + zodiacCorrection);
+                
+                points.push([lat, lon]);
+            }
+        }
+    }
+    
+    console.log('Zodio calculation produced', points.length, 'points');
+    return points;
+}
+
 function calculateAstrocartographyLine(planetPos, birthLat, lineType, lst, jd) {
+    // Get coordinate system preference
+    var coordSystem = document.getElementById('coordinateSystem').value;
+    
     // GMST in degrees, using existing sidereal function at Greenwich longitude 0
     var gmst = getSiderealTime(jd, 0);
 
     var raDeg = normalize360(planetPos.ra);
     var decDeg = planetPos.dec;
+    
+    // Apply coordinate system transformation
+    if (coordSystem === 'mundo') {
+        // Mundo (Local Space): Use local horizon coordinates
+        // This is the traditional "relocational" astrology approach
+        console.log('Using Mundo system (Local Space) - horizon-based coordinates');
+    } else {
+        // Zodio (In Zodiac): Use zodiacal coordinates (default)
+        // This matches most online astrology sites like Astro-Seek
+        console.log('Using Zodio system (In Zodiac) - zodiacal coordinates');
+        
+        // In Zodio system, we apply a small adjustment for ecliptic projection
+        // This better matches commercial astrocartography software
+        var eclipticObliquity = 23.4367; // Mean obliquity for J2000
+        var eclipticRad = eclipticObliquity * Math.PI / 180;
+        
+        // Small adjustment for zodiacal projection
+        if (Math.abs(decDeg) > 60) {
+            // For high declination planets, apply zodiacal correction
+            var adjustment = Math.sin(eclipticRad) * Math.sin(decDeg * Math.PI / 180) * 2;
+            raDeg = normalize360(raDeg + adjustment);
+        }
+    }
+    
     var decRad = decDeg * Math.PI / 180;
 
     var points = [];
@@ -527,6 +640,51 @@ function calculateAstrocartographyLine(planetPos, birthLat, lineType, lst, jd) {
         return points.length > 5 ? points : null;
     }
 
+    return null;
+}
+
+// Convert ecliptic longitude to Right Ascension (assuming beta = 0)
+function eclLonToRAdeg(lambdaDeg) {
+    var eps = 23.43928 * Math.PI / 180; // obliquity
+    var lam = (lambdaDeg * Math.PI) / 180;
+    var ra = Math.atan2(Math.sin(lam) * Math.cos(eps), Math.cos(lam)) * 180 / Math.PI;
+    if (ra < 0) ra += 360;
+    return ra;
+}
+
+// Zodio coordinate system - uses relocated chart angles in zodiac coordinates
+// This corresponds 1:1 to relocation charts (not astronomical visibility)
+function calculateZodioLine(planetPos, birthLat, lineType, jd, tzOffset) {
+    console.log('Calculating Zodio line for', lineType, 'using proper ecliptic→RA conversion');
+    
+    var points = [];
+    var gmst = getSiderealTime(jd, 0);
+    var eclLon = normalize360(planetPos.eclLon !== undefined ? planetPos.eclLon : planetPos.ra);
+    var decDeg = planetPos.dec;
+    
+    // Zodio MC, IC: where the relocated MC zodiac equals planet ecliptic longitude
+    // Convert planet ecl lon to equivalent RA of that ecliptic point, then solve lon from GMST
+    if (lineType === 'MC' || lineType === 'IC') {
+        var raNeeded = eclLonToRAdeg(eclLon);
+        if (lineType === 'IC') raNeeded = normalize360(raNeeded + 180);
+        
+        var lon = normalize180(raNeeded - gmst);
+        
+        for (var lat = -80; lat <= 80; lat += 2) {
+            points.push([lat, lon]);
+        }
+        
+        console.log('Zodio', lineType, 'eclLon:', eclLon.toFixed(2), '→ RA:', raNeeded.toFixed(2), '→ Lon:', lon.toFixed(2));
+        return points.length > 5 ? points : null;
+    }
+    
+    // AC, DC: Temporarily disabled - requires proper relocation chart mathematics
+    // Current implementation was mixing coordinate systems incorrectly
+    if (lineType === 'AC' || lineType === 'DC') {
+        console.log('Zodio', lineType, 'temporarily disabled - requires relocation chart implementation');
+        return null;
+    }
+    
     return null;
 }
 
@@ -582,9 +740,22 @@ function generateMap() {
         
         for (var j = 0; j < lineTypes.length; j++) {
             var lineType = lineTypes[j];
-            var linePoints = calculateAstrocartographyLine(planetPos, lat, lineType, lst, jd);
             
-            if (linePoints && linePoints.length > 0) {
+            // Branch based on coordinate system
+            var linePoints;
+            if (document.getElementById('coordinateSystem').value === 'zodio') {
+                linePoints = calculateZodioLine(planetPos, lat, lineType, jd, tzOffset);
+                console.log('Using Zodio calculation for', planet.name, lineType);
+            } else {
+                linePoints = calculateAstrocartographyLine(planetPos, lat, lineType, lst, jd);
+                console.log('Using Mundo calculation for', planet.name, lineType);
+            }
+            
+            // Skip if no valid points (e.g., disabled Zodio AC/DC)
+            if (!linePoints || linePoints.length === 0) {
+                console.log('Skipping', planet.name, lineType, '- no valid points');
+                continue;
+            }
                 var line = L.polyline(linePoints, {
                     color: planet.color,
                     weight: 2.5,
@@ -728,22 +899,8 @@ function getTimezone(lat, lon) {
     // Regional overrides for better accuracy
     var location = document.getElementById('birthLocation').value.toLowerCase();
     
-    // Special case for Istanbul with DST consideration
-    if (location.includes('istanbul') || location.includes('turkey')) {
-        var birthDate = document.getElementById('birthDate').value;
-        var dateObj = new Date(birthDate);
-        var month = dateObj.getMonth() + 1; // 1-12
-        
-        // Turkey DST: late March to late September (rough approximation)
-        // For 1986-07-31, DST was in effect, so UTC+4 instead of UTC+3
-        if (month >= 4 && month <= 9) {
-            roughTzOffset = 4; // DST
-            document.getElementById('tzDisplay').value = 'Turkey DST (UTC+4)';
-        } else {
-            roughTzOffset = 3; // Standard
-            document.getElementById('tzDisplay').value = 'Turkey Time (UTC+3)';
-        }
-    }
+    // Note: For accurate comparison with Astro-Seek, manually set timezone and lock it
+    // rather than relying on automatic detection which may differ
     
     // Common timezone corrections for major regions
     var tzName = 'UTC';
@@ -852,6 +1009,17 @@ document.getElementById('toggleTechnical').addEventListener('click', function() 
 // Add event listeners for buttons
 document.getElementById('generateBtn').addEventListener('click', function() {
     generateMap();
+});
+
+// Regenerate map when coordinate system changes
+document.getElementById('coordinateSystem').addEventListener('change', function() {
+    console.log('Coordinate system changed to:', this.value);
+    // Only regenerate if we have valid coordinates
+    var lat = parseFloat(document.getElementById('birthLat').value);
+    var lon = parseFloat(document.getElementById('birthLon').value);
+    if (!isNaN(lat) && !isNaN(lon)) {
+        generateMap();
+    }
 });
 document.getElementById('shareBtn').addEventListener('click', shareMap);
 

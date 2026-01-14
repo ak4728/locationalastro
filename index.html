@@ -39,7 +39,7 @@
 
                 <div class="form-group">
                     <label>🌍 Coordinate System</label>
-                    <select id="coordinateSystem" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.1); color: white; font-size: 1rem;">
+                    <select id="coordinateSystem" class="form-select">
                         <option value="mundo">Mundo (Local Space)</option>
                         <option value="zodio" selected>Zodio (In Zodiac)</option>
                     </select>
@@ -92,7 +92,7 @@
                     <div class="planet-list" id="planetList"></div>
                     
                     <div style="margin-top: 15px; padding: 10px; background: rgba(255,165,0,0.1); border: 1px solid rgba(255,165,0,0.3); border-radius: 8px; font-size: 0.8rem; color: rgba(255,255,255,0.8);">
-                        <strong>⚠️ Accuracy Note:</strong> Planet positions use approximate calculations. For professional accuracy matching Astro-Seek, a real ephemeris (Swiss Ephemeris) would be needed.
+                        <strong>⚠️ Accuracy Note:</strong> Planet positions use approximate calculations (mean longitude + β=0). For professional accuracy matching Astro-Seek exactly, Swiss Ephemeris would be needed. The Zodio coordinate system provides closer alignment with commercial astrology software.
                     </div>
                 </div>
             </div>

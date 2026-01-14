@@ -221,6 +221,31 @@ body {
     color: rgba(255, 255, 255, 0.5) !important;
 }
 
+/* Form Select Styling */
+.form-select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #667eea;
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+}
+
+.form-select option {
+    background: #1a1a2e;
+    color: white;
+    padding: 10px;
+}
+
 @media (max-width: 1024px) {
     .main-content {
         grid-template-columns: 1fr;
