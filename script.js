@@ -905,6 +905,48 @@ function generateMap() {
     
     currentLines.push(birthMarker);
 
+    // Add planetary position markers (where each planet is overhead at birth time)
+    console.log('Adding planetary position markers...');
+    for (var i = 0; i < planets.length; i++) {
+        var planet = planets[i];
+        var planetPos = getPlanetPosition(planet.name, jd);
+        
+        // Calculate where planet is at zenith (directly overhead)
+        // Longitude = RA - GMST, Latitude = Declination
+        var planetLon = normalize180(planetPos.ra - gmst);
+        var planetLat = planetPos.dec;
+        
+        // Only show if within reasonable bounds
+        if (Math.abs(planetLat) <= 80) {
+            var planetLocationIcon = L.divIcon({
+                html: '<div style="background: ' + planet.color + '; color: white; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border: 1px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.4); position: relative;"><div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 14px; text-shadow: 0 0 3px rgba(0,0,0,0.8);">' + planet.symbol + '</div></div>',
+                className: 'planet-position-icon',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+            
+            var planetMarker = L.marker([planetLat, planetLon], {
+                icon: planetLocationIcon,
+                zIndexOffset: 900
+            }).addTo(map);
+            
+            var planetTooltipContent = '<div style="text-align: center; font-size: 0.9em;">' +
+                '<strong style="color: ' + planet.color + ';">' + planet.symbol + ' ' + planet.name + '</strong><br>' +
+                'Overhead Position<br>' +
+                '<small>' + planetLat.toFixed(2) + '°, ' + planetLon.toFixed(2) + '°</small><br>' +
+                '<small>RA: ' + planetPos.ra.toFixed(2) + '° | Dec: ' + planetPos.dec.toFixed(2) + '°</small>' +
+                '</div>';
+            
+            planetMarker.bindTooltip(planetTooltipContent, {
+                permanent: false,
+                direction: 'top',
+                className: 'custom-tooltip'
+            });
+            
+            currentLines.push(planetMarker);
+        }
+    }
+
     document.getElementById('legend').style.display = 'block';
     document.getElementById('infoBox').style.display = 'block';
 }
