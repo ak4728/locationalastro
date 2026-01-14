@@ -31,29 +31,27 @@
 
                 <div class="form-group">
                     <label>📍 Birth Location</label>
-                    <div style="display: flex; gap: 5px;">
-                        <input type="text" id="birthLocation" value="Istanbul" placeholder="City, Country" required style="flex: 1;">
-                        <button type="button" id="geocodeBtn" style="padding: 12px 15px; background: linear-gradient(45deg, #28a745 0%, #20c997 100%); border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 0.9rem;">📍</button>
+                    <input type="text" id="birthLocation" value="Istanbul, Turkey" placeholder="City, Country or specific address" required>
+                </div>
+
+                <div class="form-group" id="coordsGroup" style="display: none;">
+                    <label>Coordinates (auto-detected)</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" id="birthLat" step="0.0001" placeholder="Latitude" readonly style="opacity: 0.7;">
+                        <input type="number" id="birthLon" step="0.0001" placeholder="Longitude" readonly style="opacity: 0.7;">
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Latitude</label>
-                    <input type="number" id="birthLat" value="41.016667" step="0.0001" placeholder="e.g., 40.7128" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Longitude</label>
-                    <input type="number" id="birthLon" value="28.950000" step="0.0001" placeholder="e.g., -74.0060" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Timezone Offset (hours from UTC)</label>
-                    <input type="number" id="tzOffset" value="3" step="0.5" placeholder="e.g., -5" required>
+                <div class="form-group" id="timezoneGroup" style="display: none;">
+                    <label>Timezone (auto-detected)</label>
+                    <input type="text" id="tzDisplay" readonly style="opacity: 0.7;">
+                    <input type="hidden" id="tzOffset" value="3">
                 </div>
 
                 <button class="btn" id="generateBtn">Generate Map</button>
                 <button class="btn" id="shareBtn" style="margin-top: 10px; background: linear-gradient(45deg, #28a745 0%, #20c997 100%);">Share Map</button>
+                
+                <button type="button" id="toggleTechnical" style="margin-top: 10px; padding: 8px 12px; background: transparent; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.85rem; width: 100%;">Show Technical Details</button>
 
                 <div class="legend" id="legend" style="display: none;">
                     <h3>Planetary Lines</h3>

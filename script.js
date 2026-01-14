@@ -562,10 +562,12 @@ function generateMap() {
 function geocodeLocation() {
     var location = document.getElementById('birthLocation').value.trim();
     if (!location) {
-        alert('Please enter a location');
         return;
     }
 
+    // Show loading state
+    document.getElementById('birthLocation').style.opacity = '0.6';
+    
     var geocodeUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(location) + '&limit=1';
     
     fetch(geocodeUrl)
@@ -577,18 +579,67 @@ function geocodeLocation() {
                 document.getElementById('birthLat').value = lat.toFixed(6);
                 document.getElementById('birthLon').value = lon.toFixed(6);
                 
-                var displayName = data[0].display_name.split(',').slice(0, 2).join(', ');
+                var displayName = data[0].display_name.split(',').slice(0, 3).join(', ');
                 document.getElementById('birthLocation').value = displayName;
                 
-                generateMap();
+                // Auto-detect timezone
+                getTimezone(lat, lon);
+                
             } else {
-                alert('Location not found. Please try a different location or enter coordinates manually.');
+                console.log('Location not found:', location);
+                // Reset to defaults if location not found
+                document.getElementById('birthLat').value = '41.016667';
+                document.getElementById('birthLon').value = '28.950000';
+                document.getElementById('tzOffset').value = '3';
+                document.getElementById('tzDisplay').value = 'UTC+3 (Turkey Time)';
             }
+            document.getElementById('birthLocation').style.opacity = '1';
         })
         .catch(function(error) {
             console.error('Geocoding error:', error);
-            alert('Error finding location. Please enter coordinates manually.');
+            document.getElementById('birthLocation').style.opacity = '1';
         });
+}
+
+function getTimezone(lat, lon) {
+    // Use TimeZoneDB or similar service for timezone detection
+    // For now, use a simple approximation based on longitude
+    var roughTzOffset = Math.round(lon / 15);
+    
+    // Common timezone corrections for major regions
+    var tzName = 'UTC';
+    var tzOffset = roughTzOffset;
+    
+    if (lon >= 28 && lon <= 32 && lat >= 36 && lat <= 42) {
+        // Turkey
+        tzOffset = 3;
+        tzName = 'Turkey Time (UTC+3)';
+    } else if (lon >= -5 && lon <= 2 && lat >= 42 && lat <= 52) {
+        // Western Europe
+        tzOffset = 1;
+        tzName = 'Central European Time (UTC+1)';
+    } else if (lon >= -125 && lon <= -67 && lat >= 25 && lat <= 49) {
+        // USA
+        if (lon >= -125 && lon <= -104) {
+            tzOffset = -8; // Pacific
+            tzName = 'Pacific Time (UTC-8)';
+        } else if (lon >= -104 && lon <= -87) {
+            tzOffset = -7; // Mountain
+            tzName = 'Mountain Time (UTC-7)';
+        } else if (lon >= -87 && lon <= -80) {
+            tzOffset = -6; // Central
+            tzName = 'Central Time (UTC-6)';
+        } else {
+            tzOffset = -5; // Eastern
+            tzName = 'Eastern Time (UTC-5)';
+        }
+    } else {
+        // Fallback to rough calculation
+        tzName = 'UTC' + (tzOffset >= 0 ? '+' : '') + tzOffset;
+    }
+    
+    document.getElementById('tzOffset').value = tzOffset;
+    document.getElementById('tzDisplay').value = tzName;
 }
 
 function shareMap() {
@@ -632,17 +683,43 @@ function loadFromUrl() {
     }
 }
 
+// Auto-geocode when location changes
+document.getElementById('birthLocation').addEventListener('input', function() {
+    clearTimeout(this.geocodeTimeout);
+    var self = this;
+    this.geocodeTimeout = setTimeout(function() {
+        geocodeLocation();
+    }, 1000); // Wait 1 second after user stops typing
+});
+
 document.getElementById('birthLocation').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
+        clearTimeout(this.geocodeTimeout);
         geocodeLocation();
     }
 });
 
+// Toggle technical details visibility
+document.getElementById('toggleTechnical').addEventListener('click', function() {
+    var coordsGroup = document.getElementById('coordsGroup');
+    var timezoneGroup = document.getElementById('timezoneGroup');
+    var isVisible = coordsGroup.style.display !== 'none';
+    
+    coordsGroup.style.display = isVisible ? 'none' : 'block';
+    timezoneGroup.style.display = isVisible ? 'none' : 'block';
+    this.textContent = isVisible ? 'Show Technical Details' : 'Hide Technical Details';
+});
+
 // Add event listeners for buttons
-document.getElementById('geocodeBtn').addEventListener('click', geocodeLocation);
 document.getElementById('generateBtn').addEventListener('click', generateMap);
 document.getElementById('shareBtn').addEventListener('click', shareMap);
 
 window.addEventListener('load', function() {
+    // Set default Istanbul coordinates and timezone
+    document.getElementById('birthLat').value = '41.016667';
+    document.getElementById('birthLon').value = '28.950000';
+    document.getElementById('tzOffset').value = '3';
+    document.getElementById('tzDisplay').value = 'Turkey Time (UTC+3)';
+    
     loadFromUrl();
 });
