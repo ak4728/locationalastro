@@ -630,16 +630,23 @@
             
             if (lineType === 'MC') {
                 // MC line: where planet transits (crosses meridian) at zenith
-                // This is where Local Sidereal Time equals the planet's Right Ascension
                 var mcLongitude = planetPos.ra; // RA directly gives MC longitude
                 
-                // MC lines are nearly straight meridians with slight curvature
+                // MC lines with enhanced mundo curvature
                 for (var lat = -80; lat <= 80; lat += 2) {
-                    // Small correction for obliquity and nutation
-                    var correction = Math.sin(dec) * Math.tan(lat * Math.PI / 180) * 0.1;
-                    var adjustedLon = mcLongitude + correction;
+                    var latRad = lat * Math.PI / 180;
                     
-                    // Normalize to [-180, 180]
+                    // Proper mundo correction for MC line curvature
+                    // The meridian shifts based on the difference between 
+                    // geographic and astronomical coordinate systems
+                    var correction = Math.sin(dec) * Math.tan(latRad) * 15; // More visible curvature
+                    
+                    // Add nutation correction
+                    var T = (jd - 2451545.0) / 36525.0;
+                    var nutationLon = -17.2 * Math.sin((125.04 - 1934.136 * T) * Math.PI / 180) / 3600;
+                    
+                    var adjustedLon = mcLongitude + correction + nutationLon;
+                    
                     while (adjustedLon > 180) adjustedLon -= 360;
                     while (adjustedLon < -180) adjustedLon += 360;
                     
@@ -652,8 +659,16 @@
                 if (icLongitude > 180) icLongitude -= 360;
                 
                 for (var lat = -80; lat <= 80; lat += 2) {
-                    var correction = -Math.sin(dec) * Math.tan(lat * Math.PI / 180) * 0.1;
-                    var adjustedLon = icLongitude + correction;
+                    var latRad = lat * Math.PI / 180;
+                    
+                    // Enhanced IC curvature (opposite of MC)
+                    var correction = -Math.sin(dec) * Math.tan(latRad) * 15;
+                    
+                    // Add nutation correction (opposite)
+                    var T = (jd - 2451545.0) / 36525.0;
+                    var nutationLon = 17.2 * Math.sin((125.04 - 1934.136 * T) * Math.PI / 180) / 3600;
+                    
+                    var adjustedLon = icLongitude + correction + nutationLon;
                     
                     while (adjustedLon > 180) adjustedLon -= 360;
                     while (adjustedLon < -180) adjustedLon += 360;
@@ -665,7 +680,10 @@
                 // True Mundo calculation for AC/DC lines
                 // These show where the planet actually rises/sets from different latitudes
                 
-                for (var lat = -66; lat <= 66; lat += 1) { // Exclude polar regions where sun may not rise/set
+                // Dynamic latitude range based on declination
+                var maxLat = Math.min(80, 90 - Math.abs(planetPos.dec));
+                
+                for (var lat = -maxLat; lat <= maxLat; lat += 1) {
                     var latRad = lat * Math.PI / 180;
                     
                     // Calculate hour angle at rising/setting using spherical trigonometry
