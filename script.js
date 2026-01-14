@@ -429,8 +429,28 @@ function generateMap() {
     var lon = parseFloat(document.getElementById('birthLon').value);
     var tzOffset = parseFloat(document.getElementById('tzOffset').value);
 
-    if (!dateStr || !timeStr || isNaN(lat) || isNaN(lon) || isNaN(tzOffset)) {
-        alert('Please fill in all fields correctly');
+    console.log('Validation check:', {
+        dateStr: dateStr,
+        timeStr: timeStr, 
+        lat: lat,
+        lon: lon,
+        tzOffset: tzOffset
+    });
+
+    if (!dateStr || !timeStr) {
+        alert('Please fill in birth date and time');
+        return;
+    }
+
+    if (isNaN(lat) || isNaN(lon)) {
+        alert('Location coordinates are missing. Please enter a valid location and wait for it to be resolved.');
+        // Try geocoding the current location if coordinates are missing
+        geocodeLocation();
+        return;
+    }
+
+    if (isNaN(tzOffset)) {
+        alert('Timezone information is missing. Please enter a valid location.');
         return;
     }
 
@@ -622,6 +642,8 @@ function geocodeLocation() {
                 // Auto-detect timezone
                 getTimezone(lat, lon);
                 
+                console.log('Geocoding successful. New coordinates:', lat, lon);
+                
             } else {
                 console.log('Location not found:', location);
                 // Only reset to defaults if current coordinates are also Istanbul defaults
@@ -755,7 +777,24 @@ document.getElementById('toggleTechnical').addEventListener('click', function() 
 });
 
 // Add event listeners for buttons
-document.getElementById('generateBtn').addEventListener('click', generateMap);
+document.getElementById('generateBtn').addEventListener('click', function() {
+    // Check if we need to geocode first
+    var location = document.getElementById('birthLocation').value.trim();
+    var lat = parseFloat(document.getElementById('birthLat').value);
+    var lon = parseFloat(document.getElementById('birthLon').value);
+    
+    if (location && (isNaN(lat) || isNaN(lon))) {
+        // We have a location but no coordinates - need to geocode first
+        console.log('Need to geocode before generating map');
+        geocodeLocation();
+        // Set a timeout to generate map after geocoding
+        setTimeout(function() {
+            generateMap();
+        }, 2000);
+    } else {
+        generateMap();
+    }
+});
 document.getElementById('shareBtn').addEventListener('click', shareMap);
 
 window.addEventListener('load', function() {
