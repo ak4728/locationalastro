@@ -604,9 +604,12 @@ function geocodeLocation() {
     
     var geocodeUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(location) + '&limit=1';
     
+    console.log('Geocoding:', location, 'URL:', geocodeUrl);
+    
     fetch(geocodeUrl)
         .then(function(response) { return response.json(); })
         .then(function(data) {
+            console.log('Geocoding result:', data);
             if (data && data.length > 0) {
                 var lat = parseFloat(data[0].lat);
                 var lon = parseFloat(data[0].lon);
@@ -621,11 +624,18 @@ function geocodeLocation() {
                 
             } else {
                 console.log('Location not found:', location);
-                // Reset to defaults if location not found
-                document.getElementById('birthLat').value = '41.016667';
-                document.getElementById('birthLon').value = '28.950000';
-                document.getElementById('tzOffset').value = '3';
-                document.getElementById('tzDisplay').value = 'UTC+3 (Turkey Time)';
+                // Only reset to defaults if current coordinates are also Istanbul defaults
+                var currentLat = parseFloat(document.getElementById('birthLat').value);
+                var currentLon = parseFloat(document.getElementById('birthLon').value);
+                
+                if (Math.abs(currentLat - 41.016667) < 0.1 && Math.abs(currentLon - 28.950000) < 0.1) {
+                    // Keep Istanbul as fallback only if we're already on Istanbul coordinates
+                    document.getElementById('birthLat').value = '41.016667';
+                    document.getElementById('birthLon').value = '28.950000';
+                    document.getElementById('tzOffset').value = '3';
+                    document.getElementById('tzDisplay').value = 'Turkey Time (UTC+3)';
+                }
+                // If we have different coordinates, keep them (maybe user entered manually)
             }
             document.getElementById('birthLocation').style.opacity = '1';
         })
@@ -723,7 +733,7 @@ document.getElementById('birthLocation').addEventListener('input', function() {
     var self = this;
     this.geocodeTimeout = setTimeout(function() {
         geocodeLocation();
-    }, 1000); // Wait 1 second after user stops typing
+    }, 800); // Reduced from 1000ms for faster response
 });
 
 document.getElementById('birthLocation').addEventListener('keypress', function(e) {
@@ -749,11 +759,17 @@ document.getElementById('generateBtn').addEventListener('click', generateMap);
 document.getElementById('shareBtn').addEventListener('click', shareMap);
 
 window.addEventListener('load', function() {
-    // Set default Istanbul coordinates and timezone
-    document.getElementById('birthLat').value = '41.016667';
-    document.getElementById('birthLon').value = '28.950000';
-    document.getElementById('tzOffset').value = '3';
-    document.getElementById('tzDisplay').value = 'Turkey Time (UTC+3)';
+    // Trigger geocoding for default location instead of hardcoding coordinates
+    var defaultLocation = document.getElementById('birthLocation').value;
+    if (defaultLocation) {
+        geocodeLocation();
+    } else {
+        // Fallback to Istanbul only if no location is set
+        document.getElementById('birthLat').value = '41.016667';
+        document.getElementById('birthLon').value = '28.950000';
+        document.getElementById('tzOffset').value = '3';
+        document.getElementById('tzDisplay').value = 'Turkey Time (UTC+3)';
+    }
     
     loadFromUrl();
 });
