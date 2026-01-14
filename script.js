@@ -713,60 +713,37 @@ function generateMap() {
     document.getElementById('infoBox').style.display = 'block';
 }
 
-function geocodeLocation() {
-    var location = document.getElementById('birthLocation').value.trim();
-    if (!location) {
+function getTimezone(lat, lon) {
+    // Check if timezone is locked
+    var lockTimezone = document.getElementById('lockTimezone');
+    if (lockTimezone && lockTimezone.checked) {
+        console.log('Timezone locked, skipping auto-detection');
         return;
     }
-
-    // Show loading state
-    document.getElementById('birthLocation').style.opacity = '0.6';
     
-    var geocodeUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(location) + '&limit=1';
-    
-    fetch(geocodeUrl)
-        .then(function(response) { return response.json(); })
-        .then(function(data) {
-            if (data && data.length > 0) {
-                var lat = parseFloat(data[0].lat);
-                var lon = parseFloat(data[0].lon);
-                document.getElementById('birthLat').value = lat.toFixed(6);
-                document.getElementById('birthLon').value = lon.toFixed(6);
-                
-                var displayName = data[0].display_name.split(',').slice(0, 3).join(', ');
-                document.getElementById('birthLocation').value = displayName;
-                
-                // Auto-detect timezone
-                getTimezone(lat, lon);
-                
-                
-            } else {
-                console.log('Location not found:', location);
-                // Only reset to defaults if current coordinates are also Istanbul defaults
-                var currentLat = parseFloat(document.getElementById('birthLat').value);
-                var currentLon = parseFloat(document.getElementById('birthLon').value);
-                
-                if (Math.abs(currentLat - 41.016667) < 0.1 && Math.abs(currentLon - 28.950000) < 0.1) {
-                    // Keep Istanbul as fallback only if we're already on Istanbul coordinates
-                    document.getElementById('birthLat').value = '41.016667';
-                    document.getElementById('birthLon').value = '28.950000';
-                    document.getElementById('tzOffset').value = '3';
-                    document.getElementById('tzDisplay').value = 'Turkey Time (UTC+3)';
-                }
-                // If we have different coordinates, keep them (maybe user entered manually)
-            }
-            document.getElementById('birthLocation').style.opacity = '1';
-        })
-        .catch(function(error) {
-            console.error('Geocoding error:', error);
-            document.getElementById('birthLocation').style.opacity = '1';
-        });
-}
-
-function getTimezone(lat, lon) {
     // Use TimeZoneDB or similar service for timezone detection
     // For now, use a simple approximation based on longitude
     var roughTzOffset = Math.round(lon / 15);
+    
+    // Regional overrides for better accuracy
+    var location = document.getElementById('birthLocation').value.toLowerCase();
+    
+    // Special case for Istanbul with DST consideration
+    if (location.includes('istanbul') || location.includes('turkey')) {
+        var birthDate = document.getElementById('birthDate').value;
+        var dateObj = new Date(birthDate);
+        var month = dateObj.getMonth() + 1; // 1-12
+        
+        // Turkey DST: late March to late September (rough approximation)
+        // For 1986-07-31, DST was in effect, so UTC+4 instead of UTC+3
+        if (month >= 4 && month <= 9) {
+            roughTzOffset = 4; // DST
+            document.getElementById('tzDisplay').value = 'Turkey DST (UTC+4)';
+        } else {
+            roughTzOffset = 3; // Standard
+            document.getElementById('tzDisplay').value = 'Turkey Time (UTC+3)';
+        }
+    }
     
     // Common timezone corrections for major regions
     var tzName = 'UTC';
@@ -893,10 +870,6 @@ window.addEventListener('load', function() {
         
         // Try to improve with geocoding if we have a location
         var defaultLocation = document.getElementById('birthLocation').value;
-        if (defaultLocation) {
-            setTimeout(function() {
-                geocodeLocation();
-            }, 100);
-        }
+        // Note: geocoding is now handled by the interactive geocoder input
     }
 });

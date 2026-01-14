@@ -37,6 +37,15 @@
                     <input type="text" id="birthLocation" value="Istanbul, Turkey" style="display: none;">
                 </div>
 
+                <div class="form-group">
+                    <label>🌍 Coordinate System</label>
+                    <select id="coordinateSystem" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.1); color: white; font-size: 1rem;">
+                        <option value="mundo">Mundo (Local Space)</option>
+                        <option value="zodio" selected>Zodio (In Zodiac)</option>
+                    </select>
+                    <small style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-top: 5px; display: block;">Zodio matches most astrology sites like Astro-Seek</small>
+                </div>
+
                 <div class="form-group" id="coordsGroup" style="display: none;">
                     <label>Coordinates (auto-detected)</label>
                     <div style="display: flex; gap: 10px;">
@@ -49,6 +58,9 @@
                     <label>Timezone (auto-detected)</label>
                     <input type="text" id="tzDisplay" readonly style="opacity: 0.7;">
                     <input type="hidden" id="tzOffset" value="3">
+                    <label style="margin-top: 8px; display: flex; align-items: center; font-size: 0.9rem;">
+                        <input type="checkbox" id="lockTimezone" style="margin-right: 8px;"> Lock timezone (disable auto-detection)
+                    </label>
                 </div>
 
                 <button class="btn" id="generateBtn">Generate Map</button>
@@ -78,6 +90,10 @@
                     </div>
                     
                     <div class="planet-list" id="planetList"></div>
+                    
+                    <div style="margin-top: 15px; padding: 10px; background: rgba(255,165,0,0.1); border: 1px solid rgba(255,165,0,0.3); border-radius: 8px; font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+                        <strong>⚠️ Accuracy Note:</strong> Planet positions use approximate calculations. For professional accuracy matching Astro-Seek, a real ephemeris (Swiss Ephemeris) would be needed.
+                    </div>
                 </div>
             </div>
 
