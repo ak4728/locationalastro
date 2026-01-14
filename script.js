@@ -136,12 +136,9 @@ async function searchLocation(query, resultsDiv, input, autoSelectTop) {
   _showGeoStatus(resultsDiv, 'Searching…');
 
   const url =
-    'https://nominatim.openstreetmap.org/search' +
-    '?format=json' +
-    '&addressdetails=1' +
-    '&limit=5' +
-    '&accept-language=en' +
-    '&q=' + encodeURIComponent(query);
+    'https://photon.komoot.io/api/' +
+    '?q=' + encodeURIComponent(query) +
+    '&limit=5';
 
   try {
     const resp = await fetch(url, {
@@ -153,16 +150,19 @@ async function searchLocation(query, resultsDiv, input, autoSelectTop) {
 
     const data = await resp.json();
 
-    if (!Array.isArray(data) || data.length === 0) {
+    const features = (data && data.features) ? data.features : [];
+    if (features.length === 0) {
       resultsDiv.style.display = 'none';
       return;
     }
 
     // Auto select top result for Enter key
     if (autoSelectTop) {
-      const top = data[0];
-      const name = (top.display_name || '').split(',').slice(0, 2).join(', ');
-      _applyGeoSelection(name || top.display_name, top.lat, top.lon, input, resultsDiv);
+      const top = features[0];
+      const name = top.properties && top.properties.name ? top.properties.name : query;
+      const lat = top.geometry.coordinates[1];
+      const lon = top.geometry.coordinates[0];
+      _applyGeoSelection(name, lat, lon, input, resultsDiv);
       return;
     }
 
@@ -170,8 +170,15 @@ async function searchLocation(query, resultsDiv, input, autoSelectTop) {
     resultsDiv.innerHTML = '';
     resultsDiv.style.display = 'block';
 
-    data.slice(0, 5).forEach((r) => {
-      const name = (r.display_name || '').split(',').slice(0, 2).join(', ') || r.display_name;
+    features.slice(0, 5).forEach((f) => {
+      const nameParts = [];
+      if (f.properties && f.properties.name) nameParts.push(f.properties.name);
+      if (f.properties && f.properties.state) nameParts.push(f.properties.state);
+      if (f.properties && f.properties.country) nameParts.push(f.properties.country);
+      const name = nameParts.join(', ') || query;
+
+      const lat = f.geometry.coordinates[1];
+      const lon = f.geometry.coordinates[0];
 
       const item = document.createElement('div');
       item.className = 'geocoder-result-item';
@@ -193,7 +200,7 @@ async function searchLocation(query, resultsDiv, input, autoSelectTop) {
       });
 
       item.addEventListener('click', function() {
-        _applyGeoSelection(name, r.lat, r.lon, input, resultsDiv);
+        _applyGeoSelection(name, lat, lon, input, resultsDiv);
       });
 
       resultsDiv.appendChild(item);
