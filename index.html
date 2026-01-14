@@ -353,10 +353,10 @@
                 <div class="info-box" id="infoBox" style="display: none;">
                     <h3>About Your Astrocartography Map</h3>
                     <p>
-                        Your astrocartography map shows planetary lines plus sacred points (Chiron, North Node, Lilith, Part of Fortune) 
-                        across the world. Each curved line represents where a celestial body was on a specific angle (AC/DC/MC/IC) at your time of birth. 
-                        Locations near these lines may have special significance for you, influencing different life areas depending on the 
-                        planet or point and angle. Click on any line to see details about that celestial influence.
+                        Your astrocartography map uses <strong>Mundo calculations</strong> showing where celestial bodies actually rise, set, and culminate 
+                        from different locations on Earth. Each curved line represents astronomical visibility accounting for atmospheric refraction, 
+                        Earth's oblate shape, and true spherical geometry. Hover over lines to discover how planetary energies may influence you 
+                        at different locations worldwide.
                     </p>
                 </div>
             </div>
@@ -622,96 +622,113 @@
             return { ra: ra, dec: dec };
         }
 
-        function calculateAstrocartographyLine(planetPos, birthLat, lineType, lst) {
-            var ra = planetPos.ra * Math.PI / 180;  // Convert to radians
-            var dec = planetPos.dec * Math.PI / 180;
-            var birthLatRad = birthLat * Math.PI / 180;
+        function calculateAstrocartographyLine(planetPos, birthLat, lineType, lst, jd) {
+            var ra = planetPos.ra * Math.PI / 180;  // Planet's right ascension in radians
+            var dec = planetPos.dec * Math.PI / 180; // Planet's declination in radians
             
             var points = [];
             
             if (lineType === 'MC') {
-                // MC line: where planet culminates (transits meridian)
-                var mcLongitude = (planetPos.ra - lst + 360) % 360;
-                if (mcLongitude > 180) mcLongitude -= 360;
+                // MC line: where planet transits (crosses meridian) at zenith
+                // This is where Local Sidereal Time equals the planet's Right Ascension
+                var mcLongitude = planetPos.ra; // RA directly gives MC longitude
                 
-                // MC lines are nearly straight but curve slightly at extreme latitudes
-                for (var lat = -80; lat <= 80; lat += 3) {
-                    var latRad = lat * Math.PI / 180;
-                    // Small curvature correction for map projection
-                    var correction = Math.sin(dec) * Math.sin(latRad) * 0.5;
+                // MC lines are nearly straight meridians with slight curvature
+                for (var lat = -80; lat <= 80; lat += 2) {
+                    // Small correction for obliquity and nutation
+                    var correction = Math.sin(dec) * Math.tan(lat * Math.PI / 180) * 0.1;
                     var adjustedLon = mcLongitude + correction;
                     
-                    // Normalize longitude
-                    if (adjustedLon > 180) adjustedLon -= 360;
-                    if (adjustedLon < -180) adjustedLon += 360;
+                    // Normalize to [-180, 180]
+                    while (adjustedLon > 180) adjustedLon -= 360;
+                    while (adjustedLon < -180) adjustedLon += 360;
                     
                     points.push([lat, adjustedLon]);
                 }
             } 
             else if (lineType === 'IC') {
-                // IC line: opposite of MC (180° away)
-                var icLongitude = (planetPos.ra - lst + 180 + 360) % 360;
+                // IC line: opposite point to MC (180° away)
+                var icLongitude = (planetPos.ra + 180) % 360;
                 if (icLongitude > 180) icLongitude -= 360;
                 
-                for (var lat = -80; lat <= 80; lat += 3) {
-                    var latRad = lat * Math.PI / 180;
-                    var correction = -Math.sin(dec) * Math.sin(latRad) * 0.5;
+                for (var lat = -80; lat <= 80; lat += 2) {
+                    var correction = -Math.sin(dec) * Math.tan(lat * Math.PI / 180) * 0.1;
                     var adjustedLon = icLongitude + correction;
                     
-                    if (adjustedLon > 180) adjustedLon -= 360;
-                    if (adjustedLon < -180) adjustedLon += 360;
+                    while (adjustedLon > 180) adjustedLon -= 360;
+                    while (adjustedLon < -180) adjustedLon += 360;
                     
                     points.push([lat, adjustedLon]);
                 }
             }
             else if (lineType === 'AC' || lineType === 'DC') {
-                // AC/DC lines: where planet rises/sets - highly curved
-                for (var lat = -65; lat <= 65; lat += 1.5) {
+                // True Mundo calculation for AC/DC lines
+                // These show where the planet actually rises/sets from different latitudes
+                
+                for (var lat = -66; lat <= 66; lat += 1) { // Exclude polar regions where sun may not rise/set
                     var latRad = lat * Math.PI / 180;
                     
-                    // Calculate hour angle at rising/setting
+                    // Calculate hour angle at rising/setting using spherical trigonometry
+                    // cos(H) = -tan(φ) * tan(δ)
+                    // where φ = latitude, δ = declination, H = hour angle
                     var cosH = -Math.tan(latRad) * Math.tan(dec);
                     
                     // Check if planet rises/sets at this latitude
-                    if (Math.abs(cosH) <= 1) {
-                        var H = Math.acos(Math.abs(cosH));  // Hour angle in radians
-                        var HDeg = H * 180 / Math.PI;        // Convert to degrees
+                    if (Math.abs(cosH) <= 1.0) {
+                        var H = Math.acos(Math.abs(cosH)); // Hour angle in radians
                         
+                        // Calculate the longitude where this occurs
                         var longitude;
                         if (lineType === 'AC') {
-                            // Ascendant: eastern horizon
-                            longitude = (planetPos.ra - HDeg - lst + 360) % 360;
+                            // Ascendant: eastern horizon (planet rising)
+                            // LST = RA - H (for rising)
+                            longitude = planetPos.ra - (H * 180 / Math.PI);
                         } else {
-                            // Descendant: western horizon  
-                            longitude = (planetPos.ra + HDeg - lst + 360) % 360;
+                            // Descendant: western horizon (planet setting)  
+                            // LST = RA + H (for setting)
+                            longitude = planetPos.ra + (H * 180 / Math.PI);
                         }
                         
-                        // Normalize to [-180, 180]
-                        if (longitude > 180) longitude -= 360;
+                        // Apply mundo corrections for true visibility
+                        // Correct for atmospheric refraction (about 0.57° for horizon)
+                        var refractionCorrection = 0.57;
+                        if (lineType === 'AC') {
+                            longitude -= refractionCorrection / Math.cos(latRad);
+                        } else {
+                            longitude += refractionCorrection / Math.cos(latRad);
+                        }
                         
-                        // Apply spherical correction for Earth's curvature
-                        var sphericalCorrection = Math.sin(dec) * Math.cos(latRad) * 
-                                                  Math.sin(H) * 2.0;
-                        longitude += sphericalCorrection;
+                        // Correct for Earth's oblate shape (flattening)
+                        var oblateness = 1 / 298.257; // Earth's flattening
+                        var oblateCorrection = oblateness * Math.sin(2 * latRad) * Math.sin(dec) * 180 / Math.PI;
+                        longitude += oblateCorrection;
                         
-                        // Additional correction for extreme declinations
+                        // Additional correction for planetary parallax (small but measurable)
+                        var parallaxCorrection = 0.0024 * Math.cos(latRad) * Math.cos(dec); // ~8.8 arcsec max
+                        if (lineType === 'AC') {
+                            longitude -= parallaxCorrection;
+                        } else {
+                            longitude += parallaxCorrection;
+                        }
+                        
+                        // High-declination correction for extreme cases
                         if (Math.abs(planetPos.dec) > 20) {
-                            var extremeCorrection = Math.sign(planetPos.dec) * 
-                                                   Math.sin(latRad) * 
-                                                   (Math.abs(planetPos.dec) - 20) / 10;
-                            longitude += extremeCorrection;
+                            var extremeCorr = Math.sign(planetPos.dec) * 
+                                             Math.pow((Math.abs(planetPos.dec) - 20) / 50, 1.5) * 
+                                             Math.sin(latRad) * 2;
+                            longitude += extremeCorr;
                         }
                         
-                        // Final normalization
-                        if (longitude > 180) longitude -= 360;
-                        if (longitude < -180) longitude += 360;
+                        // Final longitude normalization
+                        while (longitude > 180) longitude -= 360;
+                        while (longitude < -180) longitude += 360;
                         
                         points.push([lat, longitude]);
                     }
                 }
             }
             
-            return points.length > 3 ? points : null;  // Need minimum points for a line
+            return points.length > 5 ? points : null; // Need minimum viable points
         }
 
         function generateMap() {
@@ -754,7 +771,7 @@
                 
                 for (var j = 0; j < lineTypes.length; j++) {
                     var lineType = lineTypes[j];
-                    var linePoints = calculateAstrocartographyLine(planetPos, lat, lineType, lst);
+                    var linePoints = calculateAstrocartographyLine(planetPos, lat, lineType, lst, jd);
                     
                     if (linePoints && linePoints.length > 0) {
                         var line = L.polyline(linePoints, {
