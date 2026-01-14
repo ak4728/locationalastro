@@ -302,7 +302,7 @@
     <div class="container">
         <div class="header">
             <h1>Astrocartography Map</h1>
-            <p>Discover where the planets align for you around the world</p>
+            <p>Discover where the planets, nodes, and sacred points align for you around the world</p>
         </div>
 
         <div class="main-content">
@@ -360,10 +360,10 @@
                 <div class="info-box" id="infoBox" style="display: none;">
                     <h3>About Your Astrocartography Map</h3>
                     <p>
-                        Your astrocartography map shows planetary lines across the world. Each vertical line represents 
-                        where a planet was on a specific angle (AC/DC/MC/IC) at your time of birth. Locations near these 
-                        lines may have special significance for you, influencing different life areas depending on the 
-                        planet and angle. Click on any line to see details about that planetary influence.
+                        Your astrocartography map shows planetary lines plus sacred points (Chiron, North Node, Lilith, Part of Fortune) 
+                        across the world. Each curved line represents where a celestial body was on a specific angle (AC/DC/MC/IC) at your time of birth. 
+                        Locations near these lines may have special significance for you, influencing different life areas depending on the 
+                        planet or point and angle. Click on any line to see details about that celestial influence.
                     </p>
                 </div>
             </div>
@@ -394,7 +394,11 @@
             { name: 'Saturn', color: '#8B4513', symbol: '♄' },
             { name: 'Uranus', color: '#40E0D0', symbol: '♅' },
             { name: 'Neptune', color: '#4169E1', symbol: '♆' },
-            { name: 'Pluto', color: '#8A2BE2', symbol: '♇' }
+            { name: 'Pluto', color: '#8A2BE2', symbol: '♇' },
+            { name: 'North Node', color: '#FFE4B5', symbol: '☊' },
+            { name: 'Chiron', color: '#CD853F', symbol: '⚷' },
+            { name: 'Lilith', color: '#8B008B', symbol: '⚸' },
+            { name: 'Part of Fortune', color: '#32CD32', symbol: '⊕' }
         ];
 
         var lineTypes = ['AC', 'DC', 'MC', 'IC'];
@@ -460,6 +464,30 @@
                 'DC': 'Transformative relationships, power dynamics, intense partnerships.',
                 'MC': 'Psychology, investigation, transformation careers, powerful reputation.',
                 'IC': 'Family secrets, transformative home life, powerful ancestral influences.'
+            },
+            'North Node': {
+                'AC': 'Karmic destiny, soul growth, developing new identity and life path.',
+                'DC': 'Destined relationships, karmic partnerships, growth through others.',
+                'MC': 'Soul purpose in career, destined professional path, public mission.',
+                'IC': 'Karmic family connections, ancestral healing, spiritual foundation.'
+            },
+            'Chiron': {
+                'AC': 'Healing journey, overcoming wounds, becoming a wounded healer.',
+                'DC': 'Healing through relationships, attracting wounded partners to heal.',
+                'MC': 'Healing professions, teaching through personal wounds, mentorship.',
+                'IC': 'Family wounds and healing, ancestral trauma work, deep healing.'
+            },
+            'Lilith': {
+                'AC': 'Wild feminine power, rebellion, raw authenticity, shadow work.',
+                'DC': 'Intense magnetic relationships, power struggles, taboo attractions.',
+                'MC': 'Unconventional career, challenging authority, raw creative power.',
+                'IC': 'Family shadows, suppressed feminine power, deep psychological work.'
+            },
+            'Part of Fortune': {
+                'AC': 'Natural luck and fortune, innate talents bringing success.',
+                'DC': 'Fortune through partnerships, lucky relationships and collaborations.',
+                'MC': 'Career success and recognition, professional fortune and prosperity.',
+                'IC': 'Family fortune, inherited luck, foundational prosperity and security.'
             }
         };
 
@@ -547,11 +575,32 @@
                     L: 238.96 + 145.18 * T,
                     omega: 110.30 + 0.387 * T,
                     e: 0.2488
+                },
+                'North Node': {
+                    L: 125.04 - 1934.136 * T,
+                    omega: 0,
+                    e: 0
+                },
+                'Chiron': {
+                    L: 50.08 + 2368.34 * T,
+                    omega: 339.29 + 0.211 * T,
+                    e: 0.3826
+                },
+                'Lilith': {
+                    L: 83.35 + 4069.01 * T,
+                    omega: 0,
+                    e: 0
                 }
             };
 
             var planet = positions[planetName];
-            if (!planet) return { ra: 0, dec: 0 };
+            if (!planet) {
+                // Special calculation for Part of Fortune
+                if (planetName === 'Part of Fortune') {
+                    return calculatePartOfFortune(jd);
+                }
+                return { ra: 0, dec: 0 };
+            }
 
             var L = planet.L % 360;
             if (L < 0) L += 360;
