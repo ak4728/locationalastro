@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create a proper geocoder input field
         var geocoderDiv = document.createElement('div');
         geocoderDiv.className = 'geocoder-input-container';
+        geocoderDiv.style.position = 'relative';
         
         var input = document.createElement('input');
         input.type = 'text';
@@ -96,76 +97,114 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function searchLocation(query, resultsDiv, input, autoSelectTop) {
-    geocoder.geocode(query, function(results) {
-        resultsDiv.innerHTML = '';
-        if (results && results.length > 0) {
-            if (autoSelectTop) {
-                // Simulate clicking the first result
-                var r = results[0];
-                input.value = r.name;
-                document.getElementById('birthLocation').value = r.name;
-                document.getElementById('birthLat').value = r.center.lat.toFixed(6);
-                document.getElementById('birthLon').value = r.center.lng.toFixed(6);
-                document.getElementById('coordsGroup').style.display = 'block';
-                document.getElementById('timezoneGroup').style.display = 'block';
-                getTimezone(r.center.lat, r.center.lng);
-                resultsDiv.style.display = 'none';
-                console.log('Auto-selected location:', r.name, 'Coordinates:', r.center.lat, r.center.lng);
-                return;
-            }
-            
-            resultsDiv.style.display = 'block';
-            
-            results.slice(0, 5).forEach(function(result) {
-                var item = document.createElement('div');
-                item.className = 'geocoder-result-item';
-                item.textContent = result.name;
-                item.style.cssText = `
-                    color: white;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                    padding: 10px 12px;
-                    cursor: pointer;
-                    transition: background 0.2s ease;
-                `;
-                
-                item.addEventListener('mouseenter', function() {
-                    this.style.background = 'rgba(102, 126, 234, 0.3)';
-                });
-                
-                item.addEventListener('mouseleave', function() {
-                    this.style.background = 'transparent';
-                });
-                
-                item.addEventListener('click', function() {
-                    var lat = result.center.lat;
-                    var lon = result.center.lng;
-                    var name = result.name;
-                    
-                    // Update form fields
-                    input.value = name;
-                    document.getElementById('birthLocation').value = name;
-                    document.getElementById('birthLat').value = lat.toFixed(6);
-                    document.getElementById('birthLon').value = lon.toFixed(6);
-                    
-                    // Show coordinates and timezone
-                    document.getElementById('coordsGroup').style.display = 'block';
-                    document.getElementById('timezoneGroup').style.display = 'block';
-                    
-                    // Auto-detect timezone
-                    getTimezone(lat, lon);
-                    
-                    resultsDiv.style.display = 'none';
-                    
-                    console.log('Location selected:', name, 'Coordinates:', lat, lon);
-                });
-                
-                resultsDiv.appendChild(item);
-            });
-        } else {
-            resultsDiv.style.display = 'none';
-        }
+let _geoAbort = null;
+
+function _showGeoStatus(resultsDiv, text) {
+  resultsDiv.innerHTML = `
+    <div style="padding:10px 12px; color: rgba(255,255,255,0.8);">
+      ${text}
+    </div>
+  `;
+  resultsDiv.style.display = 'block';
+}
+
+function _applyGeoSelection(name, lat, lon, input, resultsDiv) {
+  input.value = name;
+  document.getElementById('birthLocation').value = name;
+  document.getElementById('birthLat').value = (+lat).toFixed(6);
+  document.getElementById('birthLon').value = (+lon).toFixed(6);
+
+  document.getElementById('coordsGroup').style.display = 'block';
+  document.getElementById('timezoneGroup').style.display = 'block';
+  getTimezone(+lat, +lon);
+
+  resultsDiv.style.display = 'none';
+}
+
+async function searchLocation(query, resultsDiv, input, autoSelectTop) {
+  // Make dropdown behave like a dropdown (above map, not clipped)
+  resultsDiv.style.position = 'absolute';
+  resultsDiv.style.left = '0';
+  resultsDiv.style.right = '0';
+  resultsDiv.style.top = 'calc(100% + 6px)';
+  resultsDiv.style.zIndex = '99999';
+
+  // Cancel previous request
+  if (_geoAbort) _geoAbort.abort();
+  _geoAbort = new AbortController();
+
+  _showGeoStatus(resultsDiv, 'Searching…');
+
+  const url =
+    'https://nominatim.openstreetmap.org/search' +
+    '?format=json' +
+    '&addressdetails=1' +
+    '&limit=5' +
+    '&accept-language=en' +
+    '&q=' + encodeURIComponent(query);
+
+  try {
+    const resp = await fetch(url, {
+      signal: _geoAbort.signal,
+      headers: { 'Accept': 'application/json' }
     });
+
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+    const data = await resp.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+      resultsDiv.style.display = 'none';
+      return;
+    }
+
+    // Auto select top result for Enter key
+    if (autoSelectTop) {
+      const top = data[0];
+      const name = (top.display_name || '').split(',').slice(0, 2).join(', ');
+      _applyGeoSelection(name || top.display_name, top.lat, top.lon, input, resultsDiv);
+      return;
+    }
+
+    // Render dropdown items
+    resultsDiv.innerHTML = '';
+    resultsDiv.style.display = 'block';
+
+    data.slice(0, 5).forEach((r) => {
+      const name = (r.display_name || '').split(',').slice(0, 2).join(', ') || r.display_name;
+
+      const item = document.createElement('div');
+      item.className = 'geocoder-result-item';
+      item.textContent = name;
+      item.style.cssText = `
+        color: white;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 10px 12px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      `;
+
+      item.addEventListener('mouseenter', function() {
+        this.style.background = 'rgba(102, 126, 234, 0.3)';
+      });
+
+      item.addEventListener('mouseleave', function() {
+        this.style.background = 'transparent';
+      });
+
+      item.addEventListener('click', function() {
+        _applyGeoSelection(name, r.lat, r.lon, input, resultsDiv);
+      });
+
+      resultsDiv.appendChild(item);
+    });
+  } catch (err) {
+    // Abort is expected during fast typing
+    if (err && err.name === 'AbortError') return;
+
+    console.error('Geocode search failed:', err);
+    _showGeoStatus(resultsDiv, 'Could not reach geocoding service. Try again, or press Enter.');
+  }
 }
 
 var planets = [
@@ -501,60 +540,7 @@ function unwrapLongitude(lon, prevLon) {
     return lon;
 }
 
-// Zodio coordinate system - uses relocated chart angles in zodiac coordinates
-// This corresponds 1:1 to relocation charts (not astronomical visibility)
-function calculateZodioLine(planetPos, birthLat, lineType, jd, tzOffset) {
-    console.log('Calculating Zodio line for', lineType, 'planet at RA:', planetPos.ra, 'Dec:', planetPos.dec);
-    
-    // Zodio method: Use relocated chart angles in zodiac coordinates
-    // This matches Astro-Seek's default method
-    
-    var points = [];
-    var raDeg = normalize360(planetPos.ra);
-    var decDeg = planetPos.dec;
-    
-    // For now, apply a zodiacal correction to the existing calculation
-    // TODO: Implement full relocation chart mathematics for true Zodio accuracy
-    
-    // Apply ecliptic-based longitude corrections (simplified Zodio approximation)
-    var eclipticObliquity = 23.4367; // degrees
-    var obliquityRad = eclipticObliquity * Math.PI / 180;
-    
-    // Zodio adjustment: transform coordinates through ecliptic plane
-    if (lineType === 'MC' || lineType === 'IC') {
-        // Midheaven/IC: Use zodiacal longitude directly
-        var zodiacLon = (lineType === 'MC') ? raDeg : normalize360(raDeg + 180);
-        
-        for (var lat = -70; lat <= 70; lat += 1) {
-            points.push([lat, normalize180(zodiacLon)]);
-        }
-    } else {
-        // AC/DC: Apply relocation chart mathematics (simplified)
-        for (var lat = -70; lat <= 70; lat += 1) {
-            var latRad = lat * Math.PI / 180;
-            var decRad = decDeg * Math.PI / 180;
-            
-            // Simplified relocation chart angle calculation
-            var cosH = -Math.tan(latRad) * Math.tan(decRad);
-            
-            if (cosH >= -1 && cosH <= 1) {
-                var H = Math.acos(Math.abs(cosH)) * 180 / Math.PI;
-                var lon = (lineType === 'AC') ? 
-                    normalize180(raDeg - H) : 
-                    normalize180(raDeg + H);
-                
-                // Apply zodiacal coordinate correction
-                var zodiacCorrection = Math.sin(obliquityRad) * Math.sin(decRad) * 5; // simplified
-                lon = normalize180(lon + zodiacCorrection);
-                
-                points.push([lat, lon]);
-            }
-        }
-    }
-    
-    console.log('Zodio calculation produced', points.length, 'points');
-    return points;
-}
+
 
 function calculateAstrocartographyLine(planetPos, birthLat, lineType, lst, jd) {
     // Get coordinate system preference
@@ -655,34 +641,66 @@ function eclLonToRAdeg(lambdaDeg) {
 // Zodio coordinate system - uses relocated chart angles in zodiac coordinates
 // This corresponds 1:1 to relocation charts (not astronomical visibility)
 function calculateZodioLine(planetPos, birthLat, lineType, jd, tzOffset) {
-    console.log('Calculating Zodio line for', lineType, 'using proper ecliptic→RA conversion');
+    console.log('Calculating Zodio line for', lineType, 'using pure zodiacal mathematics');
     
     var points = [];
     var gmst = getSiderealTime(jd, 0);
     var eclLon = normalize360(planetPos.eclLon !== undefined ? planetPos.eclLon : planetPos.ra);
-    var decDeg = planetPos.dec;
     
-    // Zodio MC, IC: where the relocated MC zodiac equals planet ecliptic longitude
-    // Convert planet ecl lon to equivalent RA of that ecliptic point, then solve lon from GMST
+    // Pure zodiacal system: calculate relocated chart angles in ecliptic coordinates
     if (lineType === 'MC' || lineType === 'IC') {
-        var raNeeded = eclLonToRAdeg(eclLon);
-        if (lineType === 'IC') raNeeded = normalize360(raNeeded + 180);
-        
+        // MC/IC: Direct zodiacal longitude calculation
+        var targetEclLon = (lineType === 'MC') ? eclLon : normalize360(eclLon + 180);
+        var raNeeded = eclLonToRAdeg(targetEclLon);
         var lon = normalize180(raNeeded - gmst);
         
         for (var lat = -80; lat <= 80; lat += 2) {
             points.push([lat, lon]);
         }
         
-        console.log('Zodio', lineType, 'eclLon:', eclLon.toFixed(2), '→ RA:', raNeeded.toFixed(2), '→ Lon:', lon.toFixed(2));
+        console.log('Zodio', lineType, 'eclLon:', eclLon.toFixed(2), '°');
         return points.length > 5 ? points : null;
     }
     
-    // AC, DC: Temporarily disabled - requires proper relocation chart mathematics
-    // Current implementation was mixing coordinate systems incorrectly
+    // AC/DC: Pure zodiacal relocation mathematics
     if (lineType === 'AC' || lineType === 'DC') {
-        console.log('Zodio', lineType, 'temporarily disabled - requires relocation chart implementation');
-        return null;
+        console.log('Zodio', lineType, 'using pure ecliptic coordinate relocation');
+        
+        for (var lat = -70; lat <= 70; lat += 1) {
+            var latRad = lat * Math.PI / 180;
+            
+            // Calculate local sidereal time where planet's ecliptic longitude 
+            // equals the relocated ascendant's ecliptic longitude
+            var obliquity = 23.43928 * Math.PI / 180;
+            
+            // For zodiacal AC: where planet eclLon = relocated ASC eclLon
+            // This is fundamentally different from astronomical rise/set
+            var eclLonRad = eclLon * Math.PI / 180;
+            
+            // Zodiacal ascendant calculation using ecliptic coordinates
+            // ASC ecliptic longitude varies with latitude in zodiacal system
+            var tanAsc = Math.cos(eclLonRad) / (Math.sin(eclLonRad) * Math.cos(obliquity) - Math.tan(latRad) * Math.sin(obliquity));
+            var ascEclLon = Math.atan(tanAsc) * 180 / Math.PI;
+            
+            if (eclLonRad > Math.PI / 2 && eclLonRad < 3 * Math.PI / 2) {
+                ascEclLon += 180;
+            }
+            ascEclLon = normalize360(ascEclLon);
+            
+            // For DC, add 180 degrees
+            if (lineType === 'DC') {
+                ascEclLon = normalize360(ascEclLon + 180);
+            }
+            
+            // Convert to RA and then to longitude
+            var raNeeded = eclLonToRAdeg(ascEclLon);
+            var lon = normalize180(raNeeded - gmst);
+            
+            points.push([lat, lon]);
+        }
+        
+        console.log('Zodio', lineType, 'calculated', points.length, 'points using ecliptic math');
+        return points.length > 5 ? points : null;
     }
     
     return null;
@@ -756,79 +774,79 @@ function generateMap() {
                 console.log('Skipping', planet.name, lineType, '- no valid points');
                 continue;
             }
-                var line = L.polyline(linePoints, {
-                    color: planet.color,
-                    weight: 2.5,
-                    opacity: 0.8,
-                    smoothFactor: 1.2
-                }).addTo(map);
+            
+            var line = L.polyline(linePoints, {
+                color: planet.color,
+                weight: 2.5,
+                opacity: 0.8,
+                smoothFactor: 1.2
+            }).addTo(map);
 
-                var interpretation = interpretations[planet.name] && interpretations[planet.name][lineType] 
-                    ? interpretations[planet.name][lineType] 
-                    : 'This celestial line brings the energy of ' + planet.name + ' to this location.';
+            var interpretation = interpretations[planet.name] && interpretations[planet.name][lineType] 
+                ? interpretations[planet.name][lineType] 
+                : 'This celestial line brings the energy of ' + planet.name + ' to this location.';
+            
+            // Break long interpretations into multiple lines
+            var formattedInterpretation = interpretation.length > 60 
+                ? interpretation.replace(/[,.] /g, function(match, offset) {
+                    return offset > 30 ? match.charAt(0) + '<br>' : match;
+                })
+                : interpretation;
+            
+            var tooltipContent = '<div style="max-width: 250px; font-size: 0.9em; line-height: 1.3;">' +
+                '<strong style="color: ' + planet.color + ';">' + planet.symbol + ' ' + planet.name + ' ' + lineType + '</strong><br><br>' +
+                '<div style="margin: 5px 0; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 5px; font-size: 0.85em;">' +
+                formattedInterpretation + '</div>' +
+                '</div>';
+            
+            // Use tooltip instead of popup for hover functionality
+            line.bindTooltip(tooltipContent, {
+                permanent: false,
+                direction: 'auto',
+                className: 'custom-tooltip'
+            });
+
+        currentLines.push(line);
+            
+            // Add planet symbols along the line at key points
+            var symbolPositions = [];
+            if (linePoints.length > 10) {
+                var step = Math.floor(linePoints.length / 5);
+                for (var s = 0; s < linePoints.length; s += step) {
+                    if (symbolPositions.length < 5) {
+                        symbolPositions.push(linePoints[s]);
+                    }
+                }
+            } else {
+                symbolPositions = linePoints.slice(0, 3);
+            }
+            
+            var iconHtml = '<div style="font-size: 20px; color: ' + planet.color + '; text-shadow: 0 0 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.5); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">' + planet.symbol + '</div>';
+            var planetIcon = L.divIcon({
+                html: iconHtml,
+                className: 'planet-icon',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+        });
+            
+            for (var k = 0; k < symbolPositions.length; k++) {
+                var marker = L.marker(symbolPositions[k], {
+                    icon: planetIcon
+                }).addTo(map);
                 
-                // Break long interpretations into multiple lines
-                var formattedInterpretation = interpretation.length > 60 
-                    ? interpretation.replace(/[,.] /g, function(match, offset) {
-                        return offset > 30 ? match.charAt(0) + '<br>' : match;
-                    })
-                    : interpretation;
-                
-                var tooltipContent = '<div style="max-width: 250px; font-size: 0.9em; line-height: 1.3;">' +
-                    '<strong style="color: ' + planet.color + ';">' + planet.symbol + ' ' + planet.name + ' ' + lineType + '</strong><br><br>' +
-                    '<div style="margin: 5px 0; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 5px; font-size: 0.85em;">' +
-                    formattedInterpretation + '</div>' +
-                    '</div>';
-                
-                // Use tooltip instead of popup for hover functionality
-                line.bindTooltip(tooltipContent, {
+                marker.bindTooltip(tooltipContent, {
                     permanent: false,
                     direction: 'auto',
                     className: 'custom-tooltip'
                 });
-
-                currentLines.push(line);
-                
-                // Add planet symbols along the line at key points
-                var symbolPositions = [];
-                if (linePoints.length > 10) {
-                    var step = Math.floor(linePoints.length / 5);
-                    for (var s = 0; s < linePoints.length; s += step) {
-                        if (symbolPositions.length < 5) {
-                            symbolPositions.push(linePoints[s]);
-                        }
-                    }
-                } else {
-                    symbolPositions = linePoints.slice(0, 3);
-                }
-                
-                var iconHtml = '<div style="font-size: 20px; color: ' + planet.color + '; text-shadow: 0 0 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.5); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">' + planet.symbol + '</div>';
-                var planetIcon = L.divIcon({
-                    html: iconHtml,
-                    className: 'planet-icon',
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12]
-                });
-                
-                for (var k = 0; k < symbolPositions.length; k++) {
-                    var marker = L.marker(symbolPositions[k], {
-                        icon: planetIcon
-                    }).addTo(map);
-                    
-                    marker.bindTooltip(tooltipContent, {
-                        permanent: false,
-                        direction: 'auto',
-                        className: 'custom-tooltip'
-                    });
-                    currentLines.push(marker);
-                }
-                
-                planetaryData.push({
-                    planet: planet.name,
-                    symbol: planet.symbol,
-                    color: planet.color
-                });
+                currentLines.push(marker);
             }
+            
+            planetaryData.push({
+                planet: planet.name,
+                symbol: planet.symbol,
+                color: planet.color
+            });
         }
     }
 
