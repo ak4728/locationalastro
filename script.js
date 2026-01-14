@@ -476,10 +476,17 @@ function generateMap() {
                     ? interpretations[planet.name][lineType] 
                     : 'This celestial line brings the energy of ' + planet.name + ' to this location.';
                 
-                var tooltipContent = '<div style="max-width: 200px; font-size: 0.9em;">' +
-                    '<strong style="color: ' + planet.color + ';">' + planet.symbol + ' ' + planet.name + ' ' + lineType + '</strong><br>' +
-                    '<div style="margin: 5px 0; padding: 5px; background: rgba(0,0,0,0.1); border-radius: 3px; font-size: 0.85em;">' +
-                    interpretation + '</div>' +
+                // Break long interpretations into multiple lines
+                var formattedInterpretation = interpretation.length > 60 
+                    ? interpretation.replace(/[,.] /g, function(match, offset) {
+                        return offset > 30 ? match.charAt(0) + '<br>' : match;
+                    })
+                    : interpretation;
+                
+                var tooltipContent = '<div style="max-width: 250px; font-size: 0.9em; line-height: 1.3;">' +
+                    '<strong style="color: ' + planet.color + ';">' + planet.symbol + ' ' + planet.name + ' ' + lineType + '</strong><br><br>' +
+                    '<div style="margin: 5px 0; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 5px; font-size: 0.85em;">' +
+                    formattedInterpretation + '</div>' +
                     '</div>';
                 
                 // Use tooltip instead of popup for hover functionality
@@ -554,6 +561,33 @@ function generateMap() {
         '</div>';
     }
     planetList.innerHTML = planetHTML;
+
+    // Add birth location marker
+    var birthLocationName = document.getElementById('birthLocation').value || 'Birth Location';
+    var birthIcon = L.divIcon({
+        html: '<div style="background: #ff4757; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">🏠</div>',
+        className: 'birth-location-icon',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    });
+    
+    var birthMarker = L.marker([lat, lon], {
+        icon: birthIcon,
+        zIndexOffset: 1000
+    }).addTo(map);
+    
+    birthMarker.bindTooltip(
+        '<div style="font-size: 0.9em; text-align: center;"><strong>🏠 Birth Location</strong><br>' + 
+        birthLocationName + '<br>' +
+        '<small>' + lat.toFixed(4) + '°, ' + lon.toFixed(4) + '°</small></div>',
+        {
+            permanent: false,
+            direction: 'top',
+            className: 'custom-tooltip'
+        }
+    );
+    
+    currentLines.push(birthMarker);
 
     document.getElementById('legend').style.display = 'block';
     document.getElementById('infoBox').style.display = 'block';
