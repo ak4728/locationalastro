@@ -156,6 +156,46 @@
             border-radius: 20px;
             padding: 25px;
             border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 15px;
+            z-index: 1000;
+            max-width: 250px;
+            display: none;
+        }
+
+        .map-controls h3 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .legend-toggle {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(102, 126, 234, 0.9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 15px;
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .legend-toggle:hover {
+            background: rgba(102, 126, 234, 1);
+            transform: scale(1.05);
         }
 
         .map-container h2 {
@@ -304,22 +344,18 @@
 
                 <button class="btn" onclick="generateMap()">Generate Map</button>
                 <button class="btn" onclick="shareMap()" style="margin-top: 10px; background: linear-gradient(45deg, #28a745 0%, #20c997 100%);">Share Map</button>
-
-                <div class="legend" id="legend" style="display: none;">
-                    <h3>Planetary Lines</h3>
-                    <div id="planetList"></div>
-                    <div class="line-types">
-                        <p><strong>Line Types:</strong></p>
-                        <p>AC = Ascendant (Rising)</p>
-                        <p>DC = Descendant (Setting)</p>
-                        <p>MC = Midheaven (Culmination)</p>
-                        <p>IC = Imum Coeli (Anti-culmination)</p>
-                    </div>
-                </div>
             </div>
 
             <div class="map-container">
                 <h2>World Map</h2>
+                <button class="legend-toggle" onclick="toggleLegend()">☰ Legend</button>
+                <div class="map-controls" id="mapLegend">
+                    <h3>Planetary Lines</h3>
+                    <div id="planetList"></div>
+                    <div style="margin-top: 10px; font-size: 0.8rem; color: #a8b2d1;">
+                        <p><strong>Lines:</strong> AC/DC/MC/IC</p>
+                    </div>
+                </div>
                 <div id="map"></div>
                 <div class="info-box" id="infoBox" style="display: none;">
                     <h3>About Your Astrocartography Map</h3>
@@ -544,38 +580,79 @@
             return { ra: ra, dec: dec };
         }
 
-        function calculateLineLongitude(planetPos, birthLat, lineType, lst) {
+        function calculateAstrocartographyLine(planetPos, birthLat, lineType, lst) {
             var ra = planetPos.ra;
             var dec = planetPos.dec;
-            var latRad = birthLat * Math.PI / 180;
+            var raRad = ra * Math.PI / 180;
             var decRad = dec * Math.PI / 180;
-
-            var longitude;
-
+            var birthLatRad = birthLat * Math.PI / 180;
+            
+            var points = [];
+            
             if (lineType === 'MC') {
-                longitude = (ra - lst + 360) % 360;
-            } else if (lineType === 'IC') {
-                longitude = (ra - lst + 180) % 360;
-            } else if (lineType === 'AC') {
-                var cosH = -Math.tan(latRad) * Math.tan(decRad);
-                if (Math.abs(cosH) <= 1) {
-                    var H = Math.acos(cosH) * 180 / Math.PI;
-                    longitude = (ra - H - lst + 360) % 360;
-                } else {
-                    return null;
+                // MC line: where planet is at zenith (directly overhead)
+                var longitude = (ra - lst + 360) % 360;
+                if (longitude > 180) longitude -= 360;
+                
+                // MC lines are nearly vertical but still curve slightly
+                for (var lat = -85; lat <= 85; lat += 5) {
+                    var latRad = lat * Math.PI / 180;
+                    var lonAdjustment = Math.sin(decRad) * Math.sin(latRad) * 2; // Small correction
+                    var adjustedLon = longitude + lonAdjustment;
+                    if (adjustedLon > 180) adjustedLon -= 360;
+                    if (adjustedLon < -180) adjustedLon += 360;
+                    points.push([lat, adjustedLon]);
                 }
-            } else if (lineType === 'DC') {
-                var cosH = -Math.tan(latRad) * Math.tan(decRad);
-                if (Math.abs(cosH) <= 1) {
-                    var H = Math.acos(cosH) * 180 / Math.PI;
-                    longitude = (ra + H - lst + 360) % 360;
-                } else {
-                    return null;
+            } 
+            else if (lineType === 'IC') {
+                // IC line: opposite of MC
+                var longitude = (ra - lst + 180) % 360;
+                if (longitude > 180) longitude -= 360;
+                
+                for (var lat = -85; lat <= 85; lat += 5) {
+                    var latRad = lat * Math.PI / 180;
+                    var lonAdjustment = -Math.sin(decRad) * Math.sin(latRad) * 2;
+                    var adjustedLon = longitude + lonAdjustment;
+                    if (adjustedLon > 180) adjustedLon -= 360;
+                    if (adjustedLon < -180) adjustedLon += 360;
+                    points.push([lat, adjustedLon]);
                 }
             }
-
-            if (longitude > 180) longitude -= 360;
-            return longitude;
+            else if (lineType === 'AC' || lineType === 'DC') {
+                // AC/DC lines: where planet rises/sets - these curve significantly
+                for (var lat = -70; lat <= 70; lat += 2) {
+                    var latRad = lat * Math.PI / 180;
+                    
+                    // Calculate hour angle for rising/setting
+                    var cosH = -Math.tan(latRad) * Math.tan(decRad);
+                    
+                    if (Math.abs(cosH) <= 1) {
+                        var H = Math.acos(Math.abs(cosH)) * 180 / Math.PI;
+                        
+                        var longitude;
+                        if (lineType === 'AC') {
+                            // Ascendant: planet rising in the east
+                            longitude = (ra - H - lst + 360) % 360;
+                        } else {
+                            // Descendant: planet setting in the west  
+                            longitude = (ra + H - lst + 360) % 360;
+                        }
+                        
+                        if (longitude > 180) longitude -= 360;
+                        
+                        // Add curvature based on declination and latitude
+                        var curvature = Math.sin(decRad) * Math.cos(latRad) * 5;
+                        longitude += curvature;
+                        
+                        if (longitude > 180) longitude -= 360;
+                        if (longitude < -180) longitude += 360;
+                        
+                        points.push([lat, longitude]);
+                    }
+                }
+            }
+            
+            return points.length > 0 ? points : null;
         }
 
         function generateMap() {
@@ -618,16 +695,14 @@
                 
                 for (var j = 0; j < lineTypes.length; j++) {
                     var lineType = lineTypes[j];
-                    var longitude = calculateLineLongitude(planetPos, lat, lineType, lst);
+                    var linePoints = calculateAstrocartographyLine(planetPos, lat, lineType, lst);
                     
-                    if (longitude !== null) {
-                        var line = L.polyline([
-                            [-90, longitude],
-                            [90, longitude]
-                        ], {
+                    if (linePoints && linePoints.length > 0) {
+                        var line = L.polyline(linePoints, {
                             color: planet.color,
                             weight: 3,
-                            opacity: 0.7
+                            opacity: 0.7,
+                            smoothFactor: 1.0
                         }).addTo(map);
 
                         var interpretation = interpretations[planet.name] && interpretations[planet.name][lineType] 
@@ -639,24 +714,36 @@
                             '<div style="background: rgba(0,0,0,0.1); padding: 8px; border-radius: 4px; margin: 5px 0; font-size: 0.9em;">' +
                             interpretation + '</div>' +
                             '<div style="font-size: 0.8em; color: #666; margin-top: 8px;">' +
-                            'Longitude: ' + longitude.toFixed(2) + '° | RA: ' + planetPos.ra.toFixed(1) + '° | Dec: ' + planetPos.dec.toFixed(1) + '°' +
+                            'RA: ' + planetPos.ra.toFixed(1) + '° | Dec: ' + planetPos.dec.toFixed(1) + '°' +
                             '</div></div>';
                         
                         line.bindPopup(popupContent);
 
                         currentLines.push(line);
                         
-                        var iconHtml = '<div style="font-size: 24px; color: ' + planet.color + '; text-shadow: 0 0 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.5); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">' + planet.symbol + '</div>';
+                        // Add planet symbols along the line at key points
+                        var symbolPositions = [];
+                        if (linePoints.length > 10) {
+                            var step = Math.floor(linePoints.length / 5);
+                            for (var s = 0; s < linePoints.length; s += step) {
+                                if (symbolPositions.length < 5) {
+                                    symbolPositions.push(linePoints[s]);
+                                }
+                            }
+                        } else {
+                            symbolPositions = linePoints.slice(0, 3);
+                        }
+                        
+                        var iconHtml = '<div style="font-size: 20px; color: ' + planet.color + '; text-shadow: 0 0 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.5); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">' + planet.symbol + '</div>';
                         var planetIcon = L.divIcon({
                             html: iconHtml,
                             className: 'planet-icon',
-                            iconSize: [30, 30],
-                            iconAnchor: [15, 15]
+                            iconSize: [24, 24],
+                            iconAnchor: [12, 12]
                         });
                         
-                        var labelPositions = [60, 30, 0, -30, -60];
-                        for (var k = 0; k < labelPositions.length; k++) {
-                            var marker = L.marker([labelPositions[k], longitude], {
+                        for (var k = 0; k < symbolPositions.length; k++) {
+                            var marker = L.marker(symbolPositions[k], {
                                 icon: planetIcon
                             }).addTo(map);
                             
@@ -687,15 +774,19 @@
             var planetHTML = '';
             for (var m = 0; m < uniquePlanets.length; m++) {
                 var planet = uniquePlanets[m];
-                planetHTML += '<div class="planet-item">' +
-                    '<span class="planet-symbol" style="color: ' + planet.color + '">' + planet.symbol + '</span>' +
-                    '<span>' + planet.planet + '</span>' +
+                planetHTML += '<div class="planet-item" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">' +
+                    '<span style="color: ' + planet.color + '; font-size: 1.1rem;">' + planet.symbol + '</span>' +
+                    '<span style="color: #fff;">' + planet.planet + '</span>' +
                 '</div>';
             }
             planetList.innerHTML = planetHTML;
 
-            document.getElementById('legend').style.display = 'block';
             document.getElementById('infoBox').style.display = 'block';
+        }
+
+        function toggleLegend() {
+            var legend = document.getElementById('mapLegend');
+            legend.style.display = legend.style.display === 'none' ? 'block' : 'none';
         }
 
         function geocodeLocation() {
