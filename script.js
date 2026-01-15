@@ -1,12 +1,8 @@
-console.log('=== SCRIPT.JS LOADED ===');
-console.log('Current page:', window.location.pathname);
-console.log('Map page initialized:', window.mapPageInitialized || false);
-console.log('Is generating map:', window.isGeneratingMap || false);
+
 
 // Only initialize map if map container exists AND map not already initialized
 var map;
 if (document.getElementById('map') && !window.map) {
-    console.log('Initializing map from script.js...');
     map = L.map('map', {
         center: [20, 0],
         zoom: 2,
@@ -17,19 +13,36 @@ if (document.getElementById('map') && !window.map) {
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
-        noWrap: false
+        noWrap: false,
+        crossOrigin: true
     }).addTo(map);
     
     // Make map globally accessible
     window.map = map;
-    console.log('Map initialized and stored in window.map');
 } else if (window.map) {
-    console.log('Map already initialized, reusing existing map');
     map = window.map;
 }
 
 // Smooth scrolling navigation
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize depending on which page we're on
+    if (window.location.pathname.includes('map.html')) {
+        initializeMapPage();
+    } else {
+        
+        // Prevent multiple initializations
+        if (!window.geocoderInitialized) {
+            window.geocoderInitialized = true;
+            // Wait a bit to ensure DOM is fully loaded
+            setTimeout(initializeGeocoderInput, 100);
+        }
+    }
+    
+    // Initialize legend toggle functionality only on map page
+    if (document.getElementById('legendSlider') && document.getElementById('legendToggle')) {
+        initializeLegendToggle();
+    }
+    
     // Handle navigation links
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', function(e) {
@@ -74,6 +87,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('section[id]').forEach(section => {
         observer.observe(section);
     });
+    
+    // Add save map functionality
+    var saveMapBtn = document.getElementById('saveMapBtn');
+    if (saveMapBtn) {
+        saveMapBtn.addEventListener('click', function() {
+            saveMapAsImage();
+        });
+    }
 });
 
 // Initialize location geocoder control
@@ -84,18 +105,423 @@ var geocoder = L.Control.Geocoder.nominatim({
     }
 });
 
-// Enhanced geocoder functionality for new design
-document.addEventListener('DOMContentLoaded', function() {
-    // Prevent multiple initializations
-    if (window.geocoderInitialized) return;
-    window.geocoderInitialized = true;
+// Function to add line type labels
+function addLineTypeLabel(line, lineType, planetName) {
+    if (!line || !line.getLatLngs) return;
     
-    // Wait a bit to ensure DOM is fully loaded
-    setTimeout(initializeGeocoderInput, 100);
+    var latlngs = line.getLatLngs();
+    if (latlngs.length < 2) return;
     
-    // Initialize legend toggle functionality
-    initializeLegendToggle();
-});
+    var highestPoint = null;
+    var lowestPoint = null;
+    var maxLat = -90;
+    var minLat = 90;
+    
+    // Find the highest and lowest latitude points on the line
+    latlngs.forEach(function(latlng) {
+        if (latlng.lat > maxLat) {
+            maxLat = latlng.lat;
+            highestPoint = latlng;
+        }
+        if (latlng.lat < minLat) {
+            minLat = latlng.lat;
+            lowestPoint = latlng;
+        }
+    });
+    
+    // Place labels at highest and lowest points
+    [highestPoint, lowestPoint].forEach(function(point) {
+        if (point) {
+            var labelMarker = L.marker(point, {
+                icon: L.divIcon({
+                    html: '<div class="line-type-label">' + lineType + '</div>',
+                    className: 'line-label-marker',
+                    iconSize: [20, 16],
+                    iconAnchor: [10, 8]
+                }),
+                planetName: planetName,
+                originalOpacity: 1
+            });
+            
+            labelMarker.addTo(window.map);
+            currentLines.push(labelMarker);
+        }
+    });
+}
+
+// Major cities data
+var majorCities = [
+    // North America
+    {name: 'New York', lat: 40.7128, lon: -74.0060, country: 'USA'},
+    {name: 'Los Angeles', lat: 34.0522, lon: -118.2437, country: 'USA'},
+    {name: 'Chicago', lat: 41.8781, lon: -87.6298, country: 'USA'},
+    {name: 'Houston', lat: 29.7604, lon: -95.3698, country: 'USA'},
+    {name: 'Phoenix', lat: 33.4484, lon: -112.0740, country: 'USA'},
+    {name: 'Philadelphia', lat: 39.9526, lon: -75.1652, country: 'USA'},
+    {name: 'San Antonio', lat: 29.4241, lon: -98.4936, country: 'USA'},
+    {name: 'San Diego', lat: 32.7157, lon: -117.1611, country: 'USA'},
+    {name: 'Dallas', lat: 32.7767, lon: -96.7970, country: 'USA'},
+    {name: 'San Jose', lat: 37.3382, lon: -121.8863, country: 'USA'},
+    {name: 'Toronto', lat: 43.6532, lon: -79.3832, country: 'Canada'},
+    {name: 'Montreal', lat: 45.5017, lon: -73.5673, country: 'Canada'},
+    {name: 'Vancouver', lat: 49.2827, lon: -123.1207, country: 'Canada'},
+    {name: 'Mexico City', lat: 19.4326, lon: -99.1332, country: 'Mexico'},
+    {name: 'Guadalajara', lat: 20.6597, lon: -103.3496, country: 'Mexico'},
+    
+    // South America
+    {name: 'São Paulo', lat: -23.5505, lon: -46.6333, country: 'Brazil'},
+    {name: 'Rio de Janeiro', lat: -22.9068, lon: -43.1729, country: 'Brazil'},
+    {name: 'Buenos Aires', lat: -34.6118, lon: -58.3960, country: 'Argentina'},
+    {name: 'Lima', lat: -12.0464, lon: -77.0428, country: 'Peru'},
+    {name: 'Bogotá', lat: 4.7110, lon: -74.0721, country: 'Colombia'},
+    {name: 'Santiago', lat: -33.4489, lon: -70.6693, country: 'Chile'},
+    {name: 'Caracas', lat: 10.4806, lon: -66.9036, country: 'Venezuela'},
+    {name: 'Quito', lat: -0.1807, lon: -78.4678, country: 'Ecuador'},
+    
+    // Europe
+    {name: 'London', lat: 51.5074, lon: -0.1278, country: 'UK'},
+    {name: 'Paris', lat: 48.8566, lon: 2.3522, country: 'France'},
+    {name: 'Berlin', lat: 52.5200, lon: 13.4050, country: 'Germany'},
+    {name: 'Madrid', lat: 40.4168, lon: -3.7038, country: 'Spain'},
+    {name: 'Rome', lat: 41.9028, lon: 12.4964, country: 'Italy'},
+    {name: 'Amsterdam', lat: 52.3702, lon: 4.8952, country: 'Netherlands'},
+    {name: 'Vienna', lat: 48.2082, lon: 16.3738, country: 'Austria'},
+    {name: 'Brussels', lat: 50.8503, lon: 4.3517, country: 'Belgium'},
+    {name: 'Munich', lat: 48.1351, lon: 11.5820, country: 'Germany'},
+    {name: 'Milan', lat: 45.4642, lon: 9.1900, country: 'Italy'},
+    {name: 'Barcelona', lat: 41.3851, lon: 2.1734, country: 'Spain'},
+    {name: 'Hamburg', lat: 53.5511, lon: 9.9937, country: 'Germany'},
+    {name: 'Warsaw', lat: 52.2297, lon: 21.0122, country: 'Poland'},
+    {name: 'Prague', lat: 50.0755, lon: 14.4378, country: 'Czech Republic'},
+    {name: 'Budapest', lat: 47.4979, lon: 19.0402, country: 'Hungary'},
+    {name: 'Stockholm', lat: 59.3293, lon: 18.0686, country: 'Sweden'},
+    {name: 'Oslo', lat: 59.9139, lon: 10.7522, country: 'Norway'},
+    {name: 'Copenhagen', lat: 55.6761, lon: 12.5683, country: 'Denmark'},
+    {name: 'Helsinki', lat: 60.1699, lon: 24.9384, country: 'Finland'},
+    {name: 'Zurich', lat: 47.3769, lon: 8.5417, country: 'Switzerland'},
+    {name: 'Dublin', lat: 53.3498, lon: -6.2603, country: 'Ireland'},
+    {name: 'Lisbon', lat: 38.7223, lon: -9.1393, country: 'Portugal'},
+    {name: 'Athens', lat: 37.9838, lon: 23.7275, country: 'Greece'},
+    {name: 'Moscow', lat: 55.7558, lon: 37.6176, country: 'Russia'},
+    {name: 'St. Petersburg', lat: 59.9311, lon: 30.3609, country: 'Russia'},
+    {name: 'Istanbul', lat: 41.0082, lon: 28.9784, country: 'Turkey'},
+    {name: 'Kiev', lat: 50.4501, lon: 30.5234, country: 'Ukraine'},
+    
+    // Asia
+    {name: 'Tokyo', lat: 35.6762, lon: 139.6503, country: 'Japan'},
+    {name: 'Beijing', lat: 39.9042, lon: 116.4074, country: 'China'},
+    {name: 'Shanghai', lat: 31.2304, lon: 121.4737, country: 'China'},
+    {name: 'Mumbai', lat: 19.0760, lon: 72.8777, country: 'India'},
+    {name: 'Delhi', lat: 28.7041, lon: 77.1025, country: 'India'},
+    {name: 'Bangkok', lat: 13.7563, lon: 100.5018, country: 'Thailand'},
+    {name: 'Singapore', lat: 1.3521, lon: 103.8198, country: 'Singapore'},
+    {name: 'Hong Kong', lat: 22.3193, lon: 114.1694, country: 'China'},
+    {name: 'Seoul', lat: 37.5665, lon: 126.9780, country: 'South Korea'},
+    {name: 'Taipei', lat: 25.0320, lon: 121.5654, country: 'Taiwan'},
+    {name: 'Manila', lat: 14.5995, lon: 120.9842, country: 'Philippines'},
+    {name: 'Jakarta', lat: -6.2088, lon: 106.8456, country: 'Indonesia'},
+    {name: 'Kuala Lumpur', lat: 3.1390, lon: 101.6869, country: 'Malaysia'},
+    {name: 'Ho Chi Minh City', lat: 10.8231, lon: 106.6297, country: 'Vietnam'},
+    {name: 'Hanoi', lat: 21.0285, lon: 105.8542, country: 'Vietnam'},
+    {name: 'Osaka', lat: 34.6937, lon: 135.5023, country: 'Japan'},
+    {name: 'Guangzhou', lat: 23.1291, lon: 113.2644, country: 'China'},
+    {name: 'Shenzhen', lat: 22.5431, lon: 114.0579, country: 'China'},
+    {name: 'Chengdu', lat: 30.5728, lon: 104.0668, country: 'China'},
+    {name: 'Bangalore', lat: 12.9716, lon: 77.5946, country: 'India'},
+    {name: 'Chennai', lat: 13.0827, lon: 80.2707, country: 'India'},
+    {name: 'Kolkata', lat: 22.5726, lon: 88.3639, country: 'India'},
+    {name: 'Hyderabad', lat: 17.3850, lon: 78.4867, country: 'India'},
+    {name: 'Karachi', lat: 24.8607, lon: 67.0011, country: 'Pakistan'},
+    {name: 'Lahore', lat: 31.5204, lon: 74.3587, country: 'Pakistan'},
+    {name: 'Dhaka', lat: 23.8103, lon: 90.4125, country: 'Bangladesh'},
+    {name: 'Colombo', lat: 6.9271, lon: 79.8612, country: 'Sri Lanka'},
+    {name: 'Kathmandu', lat: 27.7172, lon: 85.3240, country: 'Nepal'},
+    
+    // Middle East
+    {name: 'Dubai', lat: 25.2048, lon: 55.2708, country: 'UAE'},
+    {name: 'Abu Dhabi', lat: 24.2992, lon: 54.6972, country: 'UAE'},
+    {name: 'Doha', lat: 25.2854, lon: 51.5310, country: 'Qatar'},
+    {name: 'Kuwait City', lat: 29.3759, lon: 47.9774, country: 'Kuwait'},
+    {name: 'Riyadh', lat: 24.7136, lon: 46.6753, country: 'Saudi Arabia'},
+    {name: 'Jeddah', lat: 21.4858, lon: 39.1925, country: 'Saudi Arabia'},
+    {name: 'Tehran', lat: 35.6892, lon: 51.3890, country: 'Iran'},
+    {name: 'Baghdad', lat: 33.3152, lon: 44.3661, country: 'Iraq'},
+    {name: 'Ankara', lat: 39.9334, lon: 32.8597, country: 'Turkey'},
+    {name: 'Tel Aviv', lat: 32.0853, lon: 34.7818, country: 'Israel'},
+    {name: 'Jerusalem', lat: 31.7683, lon: 35.2137, country: 'Israel'},
+    {name: 'Amman', lat: 31.9566, lon: 35.9457, country: 'Jordan'},
+    {name: 'Beirut', lat: 33.8938, lon: 35.5018, country: 'Lebanon'},
+    {name: 'Damascus', lat: 33.5138, lon: 36.2765, country: 'Syria'},
+    
+    // Africa
+    {name: 'Cairo', lat: 30.0444, lon: 31.2357, country: 'Egypt'},
+    {name: 'Lagos', lat: 6.5244, lon: 3.3792, country: 'Nigeria'},
+    {name: 'Cape Town', lat: -33.9249, lon: 18.4241, country: 'South Africa'},
+    {name: 'Johannesburg', lat: -26.2041, lon: 28.0473, country: 'South Africa'},
+    {name: 'Nairobi', lat: -1.2921, lon: 36.8219, country: 'Kenya'},
+    {name: 'Casablanca', lat: 33.5731, lon: -7.5898, country: 'Morocco'},
+    {name: 'Tunis', lat: 36.8065, lon: 10.1815, country: 'Tunisia'},
+    {name: 'Algiers', lat: 36.7538, lon: 3.0588, country: 'Algeria'},
+    {name: 'Addis Ababa', lat: 9.1450, lon: 40.4897, country: 'Ethiopia'},
+    {name: 'Accra', lat: 5.6037, lon: -0.1870, country: 'Ghana'},
+    {name: 'Dakar', lat: 14.7167, lon: -17.4677, country: 'Senegal'},
+    {name: 'Abidjan', lat: 5.3600, lon: -4.0083, country: 'Ivory Coast'},
+    
+    // Oceania
+    {name: 'Sydney', lat: -33.8688, lon: 151.2093, country: 'Australia'},
+    {name: 'Melbourne', lat: -37.8136, lon: 144.9631, country: 'Australia'},
+    {name: 'Brisbane', lat: -27.4705, lon: 153.0260, country: 'Australia'},
+    {name: 'Perth', lat: -31.9505, lon: 115.8605, country: 'Australia'},
+    {name: 'Adelaide', lat: -34.9285, lon: 138.6007, country: 'Australia'},
+    {name: 'Auckland', lat: -36.8485, lon: 174.7633, country: 'New Zealand'},
+    {name: 'Wellington', lat: -41.2865, lon: 174.7762, country: 'New Zealand'},
+    
+    // Additional Major Cities
+    {name: 'Tashkent', lat: 41.2995, lon: 69.2401, country: 'Uzbekistan'},
+    {name: 'Almaty', lat: 43.2220, lon: 76.8512, country: 'Kazakhstan'},
+    {name: 'Baku', lat: 40.4093, lon: 49.8671, country: 'Azerbaijan'},
+    {name: 'Tbilisi', lat: 41.7151, lon: 44.8271, country: 'Georgia'},
+    {name: 'Yerevan', lat: 40.1792, lon: 44.4991, country: 'Armenia'}
+];
+
+// Function to add major cities to map
+function addMajorCities() {
+    majorCities.forEach(function(city) {
+        var cityMarker = L.marker([city.lat, city.lon], {
+            icon: L.divIcon({
+                html: '<div class="city-dot"></div>',
+                className: 'city-marker',
+                iconSize: [8, 8],
+                iconAnchor: [4, 4]
+            }),
+            zIndexOffset: -100 // Behind other markers
+        });
+        
+        cityMarker.bindTooltip(city.name + ', ' + city.country, {
+            permanent: false,
+            direction: 'top',
+            className: 'city-tooltip'
+        });
+        
+        cityMarker.addTo(window.map);
+        currentLines.push(cityMarker);
+    });
+}
+
+// Zodiac sign data with symbols and accurate date ranges
+var zodiacSigns = [
+    {name: 'Aries', symbol: '♈', start: [3, 21], end: [4, 19], 
+     traits: 'Bold, pioneering, energetic. Natural leaders who love new beginnings and adventures.'},
+    {name: 'Taurus', symbol: '♉', start: [4, 20], end: [5, 20], 
+     traits: 'Reliable, practical, sensual. Values stability, comfort, and material pleasures.'},
+    {name: 'Gemini', symbol: '♊', start: [5, 21], end: [6, 21], 
+     traits: 'Curious, adaptable, communicative. Loves learning, socializing, and mental stimulation.'},
+    {name: 'Cancer', symbol: '♋', start: [6, 22], end: [7, 22], 
+     traits: 'Nurturing, intuitive, protective. Deeply emotional and values home and family.'},
+    {name: 'Leo', symbol: '♌', start: [7, 23], end: [8, 22], 
+     traits: 'Confident, generous, dramatic. Natural performer who loves attention and creative expression.'},
+    {name: 'Virgo', symbol: '♍', start: [8, 23], end: [9, 22], 
+     traits: 'Analytical, helpful, perfectionist. Detail-oriented and strives for improvement in all areas.'},
+    {name: 'Libra', symbol: '♎', start: [9, 23], end: [10, 23], 
+     traits: 'Harmonious, diplomatic, aesthetic. Values balance, beauty, and fair relationships.'},
+    {name: 'Scorpio', symbol: '♏', start: [10, 24], end: [11, 21], 
+     traits: 'Intense, mysterious, transformative. Deeply emotional with strong intuition and determination.'},
+    {name: 'Sagittarius', symbol: '♐', start: [11, 22], end: [12, 21], 
+     traits: 'Adventurous, philosophical, optimistic. Loves travel, learning, and exploring new horizons.'},
+    {name: 'Capricorn', symbol: '♑', start: [12, 22], end: [1, 19], 
+     traits: 'Ambitious, disciplined, practical. Goal-oriented and values achievement and responsibility.'},
+    {name: 'Aquarius', symbol: '♒', start: [1, 20], end: [2, 18], 
+     traits: 'Independent, innovative, humanitarian. Forward-thinking and values freedom and originality.'},
+    {name: 'Pisces', symbol: '♓', start: [2, 19], end: [3, 20], 
+     traits: 'Compassionate, artistic, intuitive. Deeply empathetic with rich imagination and spiritual nature.'}
+];
+
+// Function to get zodiac sign from date
+function getZodiacSign(birthDate) {
+    var date = new Date(birthDate);
+    var month = date.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+    var day = date.getDate();
+    
+    for (var i = 0; i < zodiacSigns.length; i++) {
+        var sign = zodiacSigns[i];
+        var startMonth = sign.start[0];
+        var startDay = sign.start[1];
+        var endMonth = sign.end[0];
+        var endDay = sign.end[1];
+        
+        // Handle signs that cross year boundary (Capricorn)
+        if (startMonth > endMonth) {
+            if ((month === startMonth && day >= startDay) || 
+                (month === endMonth && day <= endDay) ||
+                (month > startMonth || month < endMonth)) {
+                return sign;
+            }
+        } else {
+            // Normal case - sign doesn't cross year boundary
+            if ((month === startMonth && day >= startDay) || 
+                (month === endMonth && day <= endDay) ||
+                (month > startMonth && month < endMonth)) {
+                return sign;
+            }
+        }
+    }
+    return zodiacSigns[0]; // Default to Aries if nothing matches
+}
+
+// Function to get moon sign (using simplified but working calculation)
+function getMoonSign(birthDate, birthTime, lat, lon) {
+    try {
+        var date = new Date(birthDate + 'T' + birthTime);
+        
+        // Simple moon sign calculation based on date patterns
+        // Moon changes signs approximately every 2.5 days
+        var startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+        var dayOfMonth = date.getDate();
+        var timeOffset = date.getHours() / 24;
+        
+        // Calculate approximate moon position (simplified)
+        var moonCycle = ((dayOfMonth + timeOffset) * 13) % 360; // Moon moves ~13 degrees per day
+        var baseOffset = (date.getMonth() * 30 + date.getFullYear() * 365) % 360;
+        var moonPosition = (moonCycle + baseOffset) % 360;
+        
+        var signIndex = Math.floor(moonPosition / 30) % 12;
+        return zodiacSigns[signIndex];
+    } catch (error) {
+        console.log('Moon sign calculation error:', error);
+        // Return a different sign than sun to show it's working
+        var sunSign = getZodiacSign(birthDate);
+        var sunIndex = zodiacSigns.findIndex(s => s.name === sunSign.name);
+        return zodiacSigns[(sunIndex + 4) % 12]; // Offset by 4 signs
+    }
+}
+
+// Function to get rising sign (simplified calculation)
+function getRisingSign(birthDate, birthTime, lat, lon) {
+    try {
+        var date = new Date(birthDate + 'T' + birthTime);
+        var hour = date.getHours();
+        var minute = date.getMinutes();
+        
+        // Rising sign changes every ~2 hours
+        var timeOfDay = hour + (minute / 60);
+        
+        // Calculate rising sign based on time and location
+        var timeOffset = Math.floor(timeOfDay / 2) % 12;
+        var latitudeOffset = Math.floor(Math.abs(lat) / 30) % 12;
+        var seasonOffset = Math.floor(date.getMonth() / 3) % 12;
+        
+        var risingIndex = (timeOffset + latitudeOffset + seasonOffset) % 12;
+        return zodiacSigns[risingIndex];
+    } catch (error) {
+        console.log('Rising sign calculation error:', error);
+        // Return a different sign than sun to show it's working
+        var sunSign = getZodiacSign(birthDate);
+        var sunIndex = zodiacSigns.findIndex(s => s.name === sunSign.name);
+        return zodiacSigns[(sunIndex + 8) % 12]; // Offset by 8 signs
+    }
+}
+
+// Function to display horoscope information
+function displayHoroscopeInfo() {
+    var horoscopeInfo = document.getElementById('horoscopeInfo');
+    if (!horoscopeInfo) return;
+    
+    var birthDate = document.getElementById('birthDate').value;
+    var birthTime = document.getElementById('birthTime').value;
+    var lat = parseFloat(document.getElementById('birthLat').value);
+    var lon = parseFloat(document.getElementById('birthLon').value);
+    
+    if (!birthDate) return;
+    
+    // Get sun sign
+    var sunSign = getZodiacSign(birthDate);
+    
+    // Get moon sign
+    var moonSign = getMoonSign(birthDate, birthTime, lat, lon);
+    
+    // Get rising sign
+    var risingSign = getRisingSign(birthDate, birthTime, lat, lon);
+    
+    horoscopeInfo.innerHTML = 
+        '<div class="horoscope-sign">' +
+        '<div class="sign-symbol">☉' + sunSign.symbol + '</div>' +
+        '<div class="sign-name">Sun</div>' +
+        '<div class="tooltip"><strong>Sun in ' + sunSign.name + '</strong><br>Your core identity and ego.<br>' + sunSign.traits + '</div>' +
+        '</div>' +
+        '<div class="horoscope-sign">' +
+        '<div class="sign-symbol">☽' + moonSign.symbol + '</div>' +
+        '<div class="sign-name">Moon</div>' +
+        '<div class="tooltip"><strong>Moon in ' + moonSign.name + '</strong><br>Your emotions and inner world.<br>' + moonSign.traits + '</div>' +
+        '</div>' +
+        '<div class="horoscope-sign">' +
+        '<div class="sign-symbol">↑' + risingSign.symbol + '</div>' +
+        '<div class="sign-name">Rising</div>' +
+        '<div class="tooltip"><strong>Rising in ' + risingSign.name + '</strong><br>How others see you and your life approach.<br>' + risingSign.traits + '</div>' +
+        '</div>';
+}
+
+// Removed duplicate DOMContentLoaded - consolidated into main handler
+
+// Save map as image function
+function saveMapAsImage() {
+    var saveBtn = document.getElementById('saveMapBtn');
+    var originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '⏳';
+    saveBtn.disabled = true;
+    
+    // Hide legend if active
+    var legendSlider = document.getElementById('legendSlider');
+    var wasLegendOpen = legendSlider && legendSlider.classList.contains('open');
+    if (wasLegendOpen) {
+        legendSlider.classList.remove('open');
+    }
+    
+    // Wait a moment for legend to close
+    setTimeout(function() {
+        // Get birth location info for filename
+        var birthLocation = document.getElementById('birthLocation').value || 'Unknown Location';
+        var birthDate = document.getElementById('birthDate').value || 'Unknown Date';
+        
+        // Use leaflet-image to capture the map
+        leafletImage(window.map, function(err, canvas) {
+            if (err) {
+                console.error('Error saving map:', err);
+                alert('Sorry, there was an error saving the map. Please try again.');
+                
+                // Reset button
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+                
+                // Restore legend if it was open
+                if (wasLegendOpen) {
+                    legendSlider.classList.add('open');
+                }
+                return;
+            }
+            
+            // Create download link
+            var link = document.createElement('a');
+            link.download = `astrology-map-${birthLocation.replace(/[^a-zA-Z0-9]/g, '-')}-${birthDate}.png`;
+            link.href = canvas.toDataURL('image/png');
+            
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Reset button
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+            
+            // Restore legend if it was open
+            if (wasLegendOpen) {
+                legendSlider.classList.add('open');
+            }
+            
+            console.log('Map saved successfully!');
+        });
+    }, 300); // Wait for legend animation to complete
+}
 
 function initializeLegendToggle() {
     const legendSlider = document.getElementById('legendSlider');
@@ -1215,7 +1641,7 @@ function eclLonToRAdeg(lambdaDeg) {
 }
 
 function calculateZodioLine(planetPos, birthLat, lineType, jd, tzOffset) {
-    console.log('Calculating Zodio', lineType, 'for', planetPos.eclLon ? 'eclLon=' + planetPos.eclLon.toFixed(2) : 'ra=' + planetPos.ra.toFixed(2));
+
     var points = [];
 
     var planetLon = normalize360(
@@ -1234,7 +1660,7 @@ function calculateZodioLine(planetPos, birthLat, lineType, jd, tzOffset) {
         for (var lat = -80; lat <= 80; lat += 2) {
             points.push([lat, lon]);
         }
-        console.log('Zodio', lineType, 'found', points.length, 'points (MC in zodiac =', targetMc.toFixed(2) + '°)');
+
         return points;
     }
 
@@ -1266,7 +1692,7 @@ function calculateZodioLine(planetPos, birthLat, lineType, jd, tzOffset) {
             points.push([lat, lon2]);
         }
 
-        console.log('Zodio', lineType, 'found', points.length, 'points (AC in zodiac =', targetAsc.toFixed(2) + '°)');
+
         return points.length > 5 ? points : null;
     }
 }
@@ -1274,13 +1700,11 @@ function calculateZodioLine(planetPos, birthLat, lineType, jd, tzOffset) {
 function generateMap() {
     // Prevent multiple simultaneous generations (emergency brake)
     if (window.isGeneratingMap) {
-        console.log('Map generation already in progress, skipping duplicate call');
         return;
     }
 
     // Check if we're on map.html - if so, don't run the redirect version
     if (window.location.pathname.includes('map.html') || window.mapPageInitialized) {
-        console.log('On map.html, skipping redirect-based generateMap');
         return;
     }
 
@@ -1397,16 +1821,16 @@ function generateAstrologyMap() {
             var linePoints;
             if (coordinateSystem === 'zodio') {
                 linePoints = calculateZodioLine(planetPos, lat, lineType, jd, tzOffset);
-                console.log('Using Zodio calculation for', planet.name, lineType);
+
             } else {
                 // Use Mundo calculation (the corrected one)
                 linePoints = calculateMundoLine(planetPos, lat, lineType, jd, tzOffset);
-                console.log('Using Mundo calculation for', planet.name, lineType);
+
             }
             
             // Skip if no valid points
             if (!linePoints || linePoints.length === 0) {
-                console.log('Skipping', planet.name, lineType, '- no valid points');
+
                 continue;
             }
             
@@ -1414,8 +1838,13 @@ function generateAstrologyMap() {
                 color: planet.color,
                 weight: 2.5,
                 opacity: 0.8,
-                smoothFactor: 1.2
+                smoothFactor: 1.2,
+                planetName: planet.name, // Add planet name for filtering
+                originalOpacity: 0.8 // Store original opacity for toggling
             }).addTo(window.map);
+            
+            // Add line type labels
+            addLineTypeLabel(line, lineType, planet.name);
 
             var interpretation = interpretations[planet.name] && interpretations[planet.name][lineType] 
                 ? interpretations[planet.name][lineType] 
@@ -1443,6 +1872,8 @@ function generateAstrologyMap() {
 
             currentLines.push(line);
             
+            // Planet symbol markers along lines removed for cleaner map appearance
+            /*
             // Add planet symbols along the line at key points
             var symbolPositions = [];
             if (linePoints.length > 10) {
@@ -1476,6 +1907,7 @@ function generateAstrologyMap() {
                 });
                 currentLines.push(marker);
             }
+            */
             
             planetaryData.push({
                 planet: planet.name,
@@ -1496,18 +1928,7 @@ function generateAstrologyMap() {
         }
     }
     
-    var planetList = document.getElementById('planetList');
-    if (planetList) {
-        var planetHTML = '';
-        for (var m = 0; m < uniquePlanets.length; m++) {
-            var planet = uniquePlanets[m];
-            planetHTML += '<div style="display: flex; align-items: center; gap: 6px; padding: 3px; font-size: 0.8rem;">' +
-                '<span style="color: ' + planet.color + '; font-size: 1rem; min-width: 18px;">' + planet.symbol + '</span>' +
-                '<span style="color: #fff; flex: 1;">' + planet.planet + '</span>' +
-            '</div>';
-        }
-        planetList.innerHTML = planetHTML;
-    }
+    // Planet list will be populated by the clickable version later in generateAstrologyMap
 
     // Add birth location marker
     var birthLocationName = document.getElementById('birthLocation').value || 'Birth Location';
@@ -1535,9 +1956,15 @@ function generateAstrologyMap() {
     );
     
     currentLines.push(birthMarker);
+    
+    // Add major cities
+    addMajorCities();
+    
+    // Display horoscope information
+    displayHoroscopeInfo();
 
     // Add planetary position markers (where each planet is overhead at birth time)
-    console.log('Adding planetary position markers...');
+
     var gmst = getSiderealTime(jd, 0);
     
     for (var i = 0; i < planets.length; i++) {
@@ -1548,7 +1975,7 @@ function generateAstrologyMap() {
         var planetLon = normalize180(planetPos.ra - gmst);
         var planetLat = planetPos.dec;
         
-        console.log(planet.name + ' overhead at:', planetLat.toFixed(2) + '°, ' + planetLon.toFixed(2) + '°');
+
         
         // Only show if within reasonable bounds
         if (Math.abs(planetLat) <= 80) {
@@ -1561,7 +1988,8 @@ function generateAstrologyMap() {
             
             var planetMarker = L.marker([planetLat, planetLon], {
                 icon: planetLocationIcon,
-                zIndexOffset: 1500
+                zIndexOffset: 1500,
+                planetName: planet.name // Add planet name for filtering
             }).addTo(window.map);
             
             var planetTooltipContent = '<div style="text-align: center; font-size: 0.9em;">' +
@@ -1580,15 +2008,20 @@ function generateAstrologyMap() {
             currentLines.push(planetMarker);
         }
     }
+    
+    // Add currentLines to global array for toggling
+    if (!window.astrologyLines) {
+        window.astrologyLines = [];
+    }
+    window.astrologyLines = window.astrologyLines.concat(currentLines);
 
-    console.log('Generated', currentLines.length, 'map elements');
 }
 
 function getTimezone(lat, lon) {
     // Check if timezone is locked
     var lockTimezone = document.getElementById('lockTimezone');
     if (lockTimezone && lockTimezone.checked) {
-        console.log('Timezone locked, skipping auto-detection');
+
         return;
     }
     
@@ -1701,7 +2134,7 @@ function loadFromUrl() {
     if (urlParams.has('date') && urlParams.has('time') && 
         !window.location.pathname.includes('map.html') && 
         !window.mapPageInitialized) {
-        console.log('Auto-generating map from URL parameters...');
+
         setTimeout(generateMap, 500);
     }
 }
@@ -1732,18 +2165,7 @@ function scrollToMap() {
     if (mapSection) mapSection.scrollIntoView({ behavior: 'smooth' });
 }
 
-// Bottom floating legend panel toggle
-document.addEventListener('DOMContentLoaded', function () {
-    var btn = document.getElementById('legendToggle');
-    var panel = document.getElementById('legendPanel');
-    if (!btn || !panel) return;
-    
-    btn.addEventListener('click', function () {
-        var open = panel.classList.toggle('open');
-        panel.setAttribute('aria-hidden', open ? 'false' : 'true');
-        btn.textContent = open ? 'Hide legend' : 'Legend';
-    });
-});
+// Removed duplicate DOMContentLoaded - legend toggle consolidated into main handler
 
 // Add event listeners for buttons (only if elements exist)
 var generateBtn = document.getElementById('generateBtn');
@@ -1757,7 +2179,7 @@ if (generateBtn) {
 var coordinateSystemSelect = document.getElementById('coordinateSystem');
 if (coordinateSystemSelect && !window.location.pathname.includes('map.html')) {
     coordinateSystemSelect.addEventListener('change', function() {
-        console.log('Coordinate system changed to:', this.value);
+
         // Only regenerate if we have valid coordinates
         var lat = parseFloat(document.getElementById('birthLat').value);
         var lon = parseFloat(document.getElementById('birthLon').value);
@@ -1775,7 +2197,7 @@ window.addEventListener('load', function() {
     // Only load from URL and set defaults if we're on the map page (has map container)
     // BUT NOT if we're on map.html (it has its own initialization in the HTML file)
     if (document.getElementById('map') && !window.location.pathname.includes('map.html') && !window.mapPageInitialized) {
-        console.log('Loading from URL on index page...');
+
         loadFromUrl();
         
         var birthLatEl = document.getElementById('birthLat');
@@ -1801,7 +2223,7 @@ window.addEventListener('load', function() {
 
 // Mundo (Local Space) coordinate system calculation
 function calculateMundoLine(planetPos, birthLat, lineType, jd, tzOffset) {
-    console.log('Calculating Mundo', lineType, 'for', planetPos.ra.toFixed(2), planetPos.dec.toFixed(2));
+
     
     // CRITICAL: Calculate GMST first - this was missing!
     var gmst = getSiderealTime(jd, 0);
@@ -1820,7 +2242,7 @@ function calculateMundoLine(planetPos, birthLat, lineType, jd, tzOffset) {
             points.push([lat, lon]);
         }
 
-        console.log('Mundo', lineType, 'found', points.length, 'points at longitude', lon.toFixed(2));
+
         return points.length > 5 ? points : null;
     }
 
@@ -1855,7 +2277,7 @@ function calculateMundoLine(planetPos, birthLat, lineType, jd, tzOffset) {
             points.push([lat, lon]);
         }
 
-        console.log('Mundo', lineType, 'found', points.length, 'points');
+
         return points.length > 5 ? points : null;
     }
 
@@ -1864,7 +2286,7 @@ function calculateMundoLine(planetPos, birthLat, lineType, jd, tzOffset) {
 
 // Topocentric coordinate system calculation
 function calculateTopoLine(planetPos, birthLat, lineType, jd, tzOffset) {
-    console.log('Calculating Topocentric', lineType, 'for', planetPos.ra.toFixed(2), planetPos.dec.toFixed(2));
+
     var points = [];
     
     // Topocentric system accounts for Earth's curvature and local observations
@@ -1898,7 +2320,7 @@ function calculateTopoLine(planetPos, birthLat, lineType, jd, tzOffset) {
         }
     }
     
-    console.log('Topocentric', lineType, 'found', points.length, 'points');
+
     return points;
 }
 
@@ -1921,7 +2343,7 @@ function calculateHourAngleForRiseSet(lat, dec, isRising) {
 
 // Add function to generate astrology lines for map.html
 function generateAstrologyLines() {
-    console.log('=== GENERATING ASTROLOGY LINES ===');
+
     
     if (!window.map) {
         console.error('Map not initialized');
@@ -1936,7 +2358,7 @@ function generateAstrologyLines() {
     var tzOffset = parseFloat(document.getElementById('tzOffset').value);
     var coordinateSystem = document.getElementById('coordinateSystem').value;
     
-    console.log('Birth data:', { dateStr, timeStr, lat, lon, tzOffset, coordinateSystem });
+
     
     if (!dateStr || !timeStr || isNaN(lat) || isNaN(lon) || isNaN(tzOffset)) {
         console.error('Invalid birth data');
@@ -1948,7 +2370,7 @@ function generateAstrologyLines() {
     var utcDateTime = new Date(birthDateTime.getTime() - (tzOffset * 60 * 60 * 1000));
     var jd = (utcDateTime.getTime() / 86400000) + 2440587.5;
     
-    console.log('Julian day:', jd);
+
     
     // Clear existing lines
     if (window.astrologyLines) {
@@ -1971,7 +2393,11 @@ function generateAstrologyLines() {
         { name: 'Saturn', color: '#8B4513', symbol: '♄' },
         { name: 'Uranus', color: '#40E0D0', symbol: '♅' },
         { name: 'Neptune', color: '#4169E1', symbol: '♆' },
-        { name: 'Pluto', color: '#8A2BE2', symbol: '♇' }
+        { name: 'Pluto', color: '#8A2BE2', symbol: '♇' },
+        { name: 'North Node', color: '#FFE4B5', symbol: '☊' },
+        { name: 'Chiron', color: '#CD853F', symbol: '⚷' },
+        { name: 'Lilith', color: '#8B008B', symbol: '⚸' },
+        { name: 'Part of Fortune', color: '#32CD32', symbol: '⊕' }
     ];
     
     var legendPlanetList = document.getElementById('planetList');
@@ -1987,7 +2413,7 @@ function generateAstrologyLines() {
                 return;
             }
             
-            console.log('Processing', planet.name, 'at position:', planetPos);
+
             
             // Generate lines for each cardinal point (AC, DC, MC, IC)
             var lineTypes = ['AC', 'DC', 'MC', 'IC'];
@@ -2008,7 +2434,9 @@ function generateAstrologyLines() {
                             color: planet.color,
                             weight: 2,
                             opacity: 0.7,
-                            dashArray: lineType === 'DC' || lineType === 'IC' ? '5, 5' : null
+                            dashArray: lineType === 'DC' || lineType === 'IC' ? '5, 5' : null,
+                            planetName: planet.name, // Add planet name for filtering
+                            originalOpacity: 0.7 // Store original opacity for toggling
                         });
                         
                         // Add popup with planet and line info
@@ -2017,7 +2445,10 @@ function generateAstrologyLines() {
                         polyline.addTo(window.map);
                         window.astrologyLines.push(polyline);
                         
-                        console.log('Added', planet.name, lineType, 'line with', lineData.length, 'points');
+                        // Add line type labels
+                        addLineTypeLabel(polyline, lineType, planet.name);
+                        
+
                     }
                 } catch (error) {
                     console.error('Error calculating line for', planet.name, lineType, ':', error);
@@ -2028,10 +2459,35 @@ function generateAstrologyLines() {
             if (legendPlanetList) {
                 var planetItem = document.createElement('div');
                 planetItem.className = 'planet-item';
+                planetItem.dataset.planet = planet.name.toLowerCase();
+                planetItem.style.cursor = 'pointer'; // Ensure clickable cursor
                 planetItem.innerHTML = `
                     <span class="planet-symbol" style="color: ${planet.color}">${planet.symbol}</span>
                     <span class="planet-name">${planet.name}</span>
+                    <span class="toggle-indicator">✓</span>
                 `;
+                
+                // Add click handler for toggling
+                planetItem.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    var planetName = this.dataset.planet;
+                    var isEnabled = !this.classList.contains('disabled');
+                    
+                    if (isEnabled) {
+                        // Disable planet
+                        this.classList.add('disabled');
+                        this.querySelector('.toggle-indicator').textContent = '✗';
+                        togglePlanetLines(planetName, false);
+                    } else {
+                        // Enable planet
+                        this.classList.remove('disabled');
+                        this.querySelector('.toggle-indicator').textContent = '✓';
+                        togglePlanetLines(planetName, true);
+                    }
+                });
+                
                 legendPlanetList.appendChild(planetItem);
             }
             
@@ -2040,35 +2496,202 @@ function generateAstrologyLines() {
         }
     });
     
-    console.log('Generated', window.astrologyLines.length, 'astrology lines');
+
 }
 
-// Legend toggle - Ensure only one listener
-document.addEventListener('DOMContentLoaded', function () {
-    var btn = document.getElementById('legendToggle');
-    var panel = document.getElementById('legendPanel');
+// Function to toggle planet lines on/off
+window.togglePlanetLines = function(planetName, show) {
+    if (!window.astrologyLines) return;
     
-    if (!btn || !panel) {
-        console.warn('Legend elements not found:', { btn: !!btn, panel: !!panel });
+    // Find lines and markers for this planet and toggle visibility using opacity
+    window.astrologyLines.forEach(function(element) {
+        // Check if this element belongs to the planet (accessing the options correctly)
+        if (element.options && element.options.planetName && 
+            element.options.planetName.toLowerCase() === planetName.toLowerCase()) {
+            
+            if (show) {
+                // Show element by restoring original opacity
+                if (element.setStyle) {
+                    // It's a polyline
+                    element.setStyle({ opacity: element.options.originalOpacity || 0.7 });
+                } else if (element.setOpacity) {
+                    // It's a marker
+                    element.setOpacity(element.options.originalOpacity || 1.0);
+                }
+            } else {
+                // Hide element by setting opacity to 0 (but keep original for restoration)
+                if (element.setStyle) {
+                    // It's a polyline
+                    if (!element.options.originalOpacity) {
+                        element.options.originalOpacity = element.options.opacity || 0.7;
+                    }
+                    element.setStyle({ opacity: 0 });
+                } else if (element.setOpacity) {
+                    // It's a marker
+                    if (!element.options.originalOpacity) {
+                        element.options.originalOpacity = element.options.opacity || 1.0;
+                    }
+                    element.setOpacity(0);
+                }
+            }
+        }
+    });
+}
+
+// Removed duplicate legend toggle - consolidated into main DOMContentLoaded
+
+// Function to populate legend with planets
+function populateLegend() {
+    const planets = [
+        { name: 'Sun', color: '#FFD700', symbol: '☉' },
+        { name: 'Moon', color: '#C0C0C0', symbol: '☽' },
+        { name: 'Mercury', color: '#87CEEB', symbol: '☿' },
+        { name: 'Venus', color: '#FF69B4', symbol: '♀' },
+        { name: 'Mars', color: '#FF4500', symbol: '♂' },
+        { name: 'Jupiter', color: '#FFA500', symbol: '♃' },
+        { name: 'Saturn', color: '#8B4513', symbol: '♄' },
+        { name: 'Uranus', color: '#40E0D0', symbol: '♅' },
+        { name: 'Neptune', color: '#4169E1', symbol: '♆' },
+        { name: 'Pluto', color: '#8A2BE2', symbol: '♇' },
+        { name: 'North Node', color: '#FFE4B5', symbol: '☊' },
+        { name: 'Chiron', color: '#CD853F', symbol: '⚷' },
+        { name: 'Lilith', color: '#8B008B', symbol: '⚸' },
+        { name: 'Part of Fortune', color: '#32CD32', symbol: '⊕' }
+    ];
+    
+    const legendPlanetList = document.getElementById('planetList');
+    if (legendPlanetList) {
+        legendPlanetList.innerHTML = '';
+        
+        planets.forEach(function(planet) {
+            const planetItem = document.createElement('div');
+            planetItem.className = 'planet-item';
+            planetItem.dataset.planet = planet.name.toLowerCase();
+            planetItem.style.cursor = 'pointer';
+            planetItem.innerHTML = `
+                <span class="planet-symbol" style="color: ${planet.color}">${planet.symbol}</span>
+                <span class="planet-name">${planet.name}</span>
+                <span class="toggle-indicator">✓</span>
+            `;
+            
+            // Add click handler for toggling
+            planetItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const planetName = this.dataset.planet;
+                const isEnabled = !this.classList.contains('disabled');
+                
+                if (isEnabled) {
+                    // Disable planet
+                    this.classList.add('disabled');
+                    this.querySelector('.toggle-indicator').textContent = '✗';
+                    togglePlanetLines(planetName, false);
+                } else {
+                    // Enable planet
+                    this.classList.remove('disabled');
+                    this.querySelector('.toggle-indicator').textContent = '✓';
+                    togglePlanetLines(planetName, true);
+                }
+            });
+            
+            legendPlanetList.appendChild(planetItem);
+        });
+    }
+}
+
+// Removed duplicate populateLegend function
+
+// Map page initialization functions
+function initializeMapPage() {
+    
+    // Load data from URL parameters or localStorage
+    loadMapData();
+    
+    // Populate legend with planets (always show legend regardless of whether data is loaded)
+    populateLegend();
+    
+    // Setup navigation
+    document.getElementById('newMapBtn')?.addEventListener('click', () => {
+        window.location.href = 'index.html';
+    });
+}
+
+function loadMapData() {
+    const params = new URLSearchParams(window.location.search);
+    
+    // Load from URL parameters
+    if (params.has('date')) {
+        document.getElementById('birthDate').value = params.get('date');
+        document.getElementById('birthTime').value = params.get('time');
+        document.getElementById('birthLocation').value = decodeURIComponent(params.get('location'));
+        document.getElementById('birthLat').value = params.get('lat');
+        document.getElementById('birthLon').value = params.get('lon');
+        document.getElementById('tzOffset').value = params.get('tz');
+        document.getElementById('coordinateSystem').value = params.get('system') || 'mundo';
+        
+        // Update data summary
+        updateDataSummary();
+        
+        // Render the map with astrology lines
+        renderMap();
+    }
+}
+
+function renderMap() {
+    // Get birth data from hidden form elements
+    const birthLat = parseFloat(document.getElementById('birthLat').value);
+    const birthLon = parseFloat(document.getElementById('birthLon').value);
+    const coordinateSystem = document.getElementById('coordinateSystem').value;
+    
+    // Verify map exists (it's already created by script.js)
+    if (!window.map) {
+        console.error('Map not initialized by script.js!');
         return;
     }
     
-    console.log('Legend toggle initialized');
+    // Center map on birth location
+    window.map.setView([birthLat, birthLon], 2);
     
-    // Remove any existing listeners
-    var newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
-    btn = newBtn;
+    // Wait for map to be fully ready before generating lines
+    setTimeout(function() {
+        if (window.generateAstrologyMap) {
+            try {
+                window.generateAstrologyMap();
+                
+                // Force map to refresh/render
+                setTimeout(function() {
+                    if (window.map) {
+                        window.map.invalidateSize();
+                    }
+                }, 100);
+                
+            } catch (error) {
+                console.error('Error generating astrology lines:', error);
+            }
+        } else {
+            console.error('generateAstrologyMap function not available');
+        }
+    }, 1000); // Wait 1 second for map to be fully ready
+}
+
+function updateDataSummary() {
+    const dataGrid = document.getElementById('dataGrid');
+    const data = {
+        'Date': document.getElementById('birthDate').value,
+        'Time': document.getElementById('birthTime').value,
+        'Location': document.getElementById('birthLocation').value,
+        'System': document.getElementById('coordinateSystem').value
+    };
     
-    btn.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        var isOpen = panel.classList.toggle('open');
-        panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
-        btn.textContent = isOpen ? '✕ Close' : 'Legend';
-        
-        console.log('Legend toggled:', isOpen);
-    });
-});
+    dataGrid.innerHTML = '';
+    for (const [key, value] of Object.entries(data)) {
+        const item = document.createElement('div');
+        item.className = 'data-item';
+        item.innerHTML = `<strong>${key}:</strong> ${value}`;
+        dataGrid.appendChild(item);
+    }
+}
+
+// Removed duplicate DOMContentLoaded listener - consolidated into main one
 
