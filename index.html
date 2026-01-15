@@ -190,24 +190,21 @@
                         <div class="form-group">
                             <label for="birthLocation">📍 Birth Location</label>
                             <div id="locationGeocoderContainer"></div>
-                            <input type="text" id="birthLocation" value="Istanbul, Turkey" style="display: none;">
+                            <input type="text" id="birthLocation" value="Istanbul, Istanbul, Turkey" style="display: none;">
                         </div>
 
-                        <div class="form-group coordinates-group" id="coordsGroup" style="display: none;">
+                        <div class="form-group coordinates-group" id="coordsGroup" style="display: block;">
                             <label>Coordinates (auto-detected)</label>
                             <div class="coordinates-input">
-                                <input type="number" id="birthLat" step="any" placeholder="Latitude" readonly>
-                                <input type="number" id="birthLon" step="any" placeholder="Longitude" readonly>
+                                <input type="number" id="birthLat" step="any" placeholder="Latitude" value="41.0082" readonly>
+                                <input type="number" id="birthLon" step="any" placeholder="Longitude" value="28.9784" readonly>
                             </div>
                         </div>
 
-                        <div class="form-group" id="timezoneGroup" style="display: none;">
+                        <div class="form-group" id="timezoneGroup" style="display: block;">
                             <label for="tzDisplay">🌍 Timezone</label>
-                            <input type="text" id="tzDisplay" readonly>
-                            <input type="hidden" id="tzOffset">
-                            <label>
-                                <input type="checkbox" id="lockTimezone"> Lock timezone
-                            </label>
+                            <input type="text" id="tzDisplay" value="Turkey Time (UTC+3)" readonly disabled style="cursor: not-allowed; opacity: 0.7;">
+                            <input type="hidden" id="tzOffset" value="3">
                         </div>
 
                         <div class="form-group">
@@ -226,91 +223,6 @@
                             <button id="shareBtn" type="button" class="share-button">
                                 📤 Share Configuration
                             </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-        <!-- Animated Background Elements -->
-        <div class="cosmic-bg">
-            <div class="constellation constellation-1">
-                <div class="constellation-star"></div>
-                <div class="constellation-star"></div>
-                <div class="constellation-star"></div>
-            </div>
-            <div class="constellation constellation-2">
-                <div class="constellation-star"></div>
-                <div class="constellation-star"></div>
-                <div class="constellation-star"></div>
-                <div class="constellation-star"></div>
-            </div>
-        </div>
-        
-        <div class="container">
-
-            <div class="section-header">
-                <h2>Birth Information</h2>
-                <p>Enter your birth details to generate your personalized astrocartography map</p>
-            </div>
-
-            <div class="map-interface">
-                <div class="control-panel">
-                    <div class="form-card">
-                        <div class="form-section">
-                            <h3>📅 Birth Details</h3>
-                            
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="birthDate">Birth Date</label>
-                                    <input type="date" id="birthDate" value="1986-07-31" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="birthTime">Birth Time</label>
-                                    <input type="time" id="birthTime" value="13:30" step="1" required>
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="birthLocation">📍 Birth Location</label>
-                                <div id="locationGeocoderContainer"></div>
-                                <input type="text" id="birthLocation" value="Istanbul, Turkey" style="display: none;">
-                            </div>
-
-                            <div class="form-group coordinates-group" id="coordsGroup" style="display: none;">
-                                <label>Coordinates (auto-detected)</label>
-                                <div class="coordinates-input">
-                                    <input type="number" id="birthLat" step="any" placeholder="Latitude" readonly>
-                                    <input type="number" id="birthLon" step="any" placeholder="Longitude" readonly>
-                                </div>
-                            </div>
-
-                            <div class="form-group" id="timezoneGroup" style="display: none;">
-                                <label for="tzDisplay"> Timezone</label>
-                                <input type="text" id="tzDisplay" readonly>
-                                <input type="hidden" id="tzOffset">
-                                <label>
-                                    <input type="checkbox" id="lockTimezone"> Lock timezone
-                                </label>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="coordinateSystem"> Coordinate System</label>
-                                <select id="coordinateSystem">
-                                    <option value="geodetic">Geodetic (Standard)</option>
-                                    <option value="zodio">Zodio (Alternative)</option>
-                                </select>
-                            </div>
-
-                            <button id="generateBtn" class="cta-button" type="button">
-                                 Generate Your Map
-                            </button>
-                            
-                            <div class="form-actions">
-                                <button id="shareBtn" type="button" class="share-button">
-                                     Share Configuration
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>

@@ -1,15 +1,19 @@
-var map = L.map('map', {
-    center: [20, 0],
-    zoom: 2,
-    minZoom: 2,
-    maxZoom: 8,
-    worldCopyJump: true
-});
+// Only initialize map if map container exists (i.e., on map.html page)
+var map;
+if (document.getElementById('map')) {
+    map = L.map('map', {
+        center: [20, 0],
+        zoom: 2,
+        minZoom: 2,
+        maxZoom: 8,
+        worldCopyJump: true
+    });
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors',
-    noWrap: false
-}).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        noWrap: false
+    }).addTo(map);
+}
 
 // Smooth scrolling navigation
 document.addEventListener('DOMContentLoaded', function() {
@@ -69,6 +73,10 @@ var geocoder = L.Control.Geocoder.nominatim({
 
 // Enhanced geocoder functionality for new design
 document.addEventListener('DOMContentLoaded', function() {
+    // Prevent multiple initializations
+    if (window.geocoderInitialized) return;
+    window.geocoderInitialized = true;
+    
     // Wait a bit to ensure DOM is fully loaded
     setTimeout(initializeGeocoderInput, 100);
     
@@ -108,7 +116,7 @@ function initializeLegendToggle() {
 
 function initializeGeocoderInput() {
     var container = document.getElementById('locationGeocoderContainer');
-    if (container) {
+    if (container && container.children.length === 0) { // Only initialize if container is empty
         // Create a proper geocoder input field
         var geocoderDiv = document.createElement('div');
         geocoderDiv.className = 'geocoder-input-container';
@@ -1392,27 +1400,37 @@ function shareMap() {
 function loadFromUrl() {
     var urlParams = new URLSearchParams(window.location.search);
     
-    if (urlParams.get('date')) document.getElementById('birthDate').value = urlParams.get('date');
-    if (urlParams.get('time')) document.getElementById('birthTime').value = urlParams.get('time');
-    if (urlParams.get('location')) {
-        document.getElementById('birthLocation').value = urlParams.get('location');
+    var birthDateEl = document.getElementById('birthDate');
+    var birthTimeEl = document.getElementById('birthTime');
+    var birthLocationEl = document.getElementById('birthLocation');
+    var birthLatEl = document.getElementById('birthLat');
+    var birthLonEl = document.getElementById('birthLon');
+    var tzOffsetEl = document.getElementById('tzOffset');
+    var coordsGroupEl = document.getElementById('coordsGroup');
+    var timezoneGroupEl = document.getElementById('timezoneGroup');
+    
+    if (urlParams.get('date') && birthDateEl) birthDateEl.value = urlParams.get('date');
+    if (urlParams.get('time') && birthTimeEl) birthTimeEl.value = urlParams.get('time');
+    if (urlParams.get('location') && birthLocationEl) {
+        birthLocationEl.value = urlParams.get('location');
         var geoInput = document.querySelector('.geocoder-input');
         if (geoInput) geoInput.value = urlParams.get('location');
     }
-    if (urlParams.get('lat')) {
-        document.getElementById('birthLat').value = urlParams.get('lat');
-        document.getElementById('coordsGroup').style.display = 'block';
+    if (urlParams.get('lat') && birthLatEl) {
+        birthLatEl.value = urlParams.get('lat');
+        if (coordsGroupEl) coordsGroupEl.style.display = 'block';
     }
-    if (urlParams.get('lon')) {
-        document.getElementById('birthLon').value = urlParams.get('lon');
-        document.getElementById('coordsGroup').style.display = 'block';
+    if (urlParams.get('lon') && birthLonEl) {
+        birthLonEl.value = urlParams.get('lon');
+        if (coordsGroupEl) coordsGroupEl.style.display = 'block';
     }
-    if (urlParams.get('tz')) {
-        document.getElementById('tzOffset').value = urlParams.get('tz');
-        document.getElementById('timezoneGroup').style.display = 'block';
+    if (urlParams.get('tz') && tzOffsetEl) {
+        tzOffsetEl.value = urlParams.get('tz');
+        if (timezoneGroupEl) timezoneGroupEl.style.display = 'block';
     }
     
-    if (urlParams.has('date') && urlParams.has('time')) {
+    // Only auto-generate map if we have date/time params AND we're NOT on the map page already
+    if (urlParams.has('date') && urlParams.has('time') && !window.location.pathname.includes('map.html')) {
         setTimeout(generateMap, 500);
     }
 }
@@ -1420,16 +1438,19 @@ function loadFromUrl() {
 // Geocoding is now handled by Leaflet Control Geocoder
 // Legacy event listeners kept for compatibility
 
-// Toggle technical details visibility
-document.getElementById('toggleTechnical').addEventListener('click', function() {
-    var coordsGroup = document.getElementById('coordsGroup');
-    var timezoneGroup = document.getElementById('timezoneGroup');
-    var isVisible = coordsGroup.style.display !== 'none';
-    
-    coordsGroup.style.display = isVisible ? 'none' : 'block';
-    timezoneGroup.style.display = isVisible ? 'none' : 'block';
-    this.textContent = isVisible ? 'Show Technical Details' : 'Hide Technical Details';
-});
+// Toggle technical details visibility (only if element exists)
+var toggleTechnicalBtn = document.getElementById('toggleTechnical');
+if (toggleTechnicalBtn) {
+    toggleTechnicalBtn.addEventListener('click', function() {
+        var coordsGroup = document.getElementById('coordsGroup');
+        var timezoneGroup = document.getElementById('timezoneGroup');
+        var isVisible = coordsGroup.style.display !== 'none';
+        
+        coordsGroup.style.display = isVisible ? 'none' : 'block';
+        timezoneGroup.style.display = isVisible ? 'none' : 'block';
+        this.textContent = isVisible ? 'Show Technical Details' : 'Hide Technical Details';
+    });
+}
 
 // Map display functionality
 let mapGenerated = false;
@@ -1453,41 +1474,59 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-// Add event listeners for buttons
-document.getElementById('generateBtn').addEventListener('click', function() {
-    generateMap();
-});
-
-// Regenerate map when coordinate system changes
-document.getElementById('coordinateSystem').addEventListener('change', function() {
-    console.log('Coordinate system changed to:', this.value);
-    // Only regenerate if we have valid coordinates
-    var lat = parseFloat(document.getElementById('birthLat').value);
-    var lon = parseFloat(document.getElementById('birthLon').value);
-    if (!isNaN(lat) && !isNaN(lon)) {
+// Add event listeners for buttons (only if elements exist)
+var generateBtn = document.getElementById('generateBtn');
+if (generateBtn) {
+    generateBtn.addEventListener('click', function() {
         generateMap();
-    }
-});
-document.getElementById('shareBtn').addEventListener('click', shareMap);
+    });
+}
+
+// Regenerate map when coordinate system changes (only if element exists AND we're not on map page)
+var coordinateSystemSelect = document.getElementById('coordinateSystem');
+if (coordinateSystemSelect && !window.location.pathname.includes('map.html')) {
+    coordinateSystemSelect.addEventListener('change', function() {
+        console.log('Coordinate system changed to:', this.value);
+        // Only regenerate if we have valid coordinates
+        var lat = parseFloat(document.getElementById('birthLat').value);
+        var lon = parseFloat(document.getElementById('birthLon').value);
+        if (!isNaN(lat) && !isNaN(lon)) {
+            generateMap();
+        }
+    });
+}
+var shareBtn = document.getElementById('shareBtn');
+if (shareBtn) {
+    shareBtn.addEventListener('click', shareMap);
+}
 
 window.addEventListener('load', function() {
-    loadFromUrl();
-    
-    var lat = parseFloat(document.getElementById('birthLat').value);
-    var lon = parseFloat(document.getElementById('birthLon').value);
-    
-    if (isNaN(lat) || isNaN(lon)) {
-        // Set default values for Istanbul, Turkey
-        document.getElementById('birthLat').value = '41.016667';
-        document.getElementById('birthLon').value = '28.950000';
-        document.getElementById('tzOffset').value = '3';
-        document.getElementById('tzDisplay').value = 'Turkey Time (UTC+3)';
+    // Only load from URL and set defaults if we're on the map page (has map container)
+    if (document.getElementById('map')) {
+        loadFromUrl();
         
-        // Try to improve with geocoding if we have a location
-        var defaultLocation = document.getElementById('birthLocation').value;
-        // Note: geocoding is now handled by the interactive geocoder input
+        var birthLatEl = document.getElementById('birthLat');
+        var birthLonEl = document.getElementById('birthLon');
+        var tzOffsetEl = document.getElementById('tzOffset');
+        
+        var lat = parseFloat(birthLatEl.value);
+        var lon = parseFloat(birthLonEl.value);
+        
+        if (isNaN(lat) || isNaN(lon)) {
+            // Set default values for Istanbul, Turkey
+            birthLatEl.value = '41.016667';
+            birthLonEl.value = '28.950000';
+            tzOffsetEl.value = '3';
+            document.getElementById('tzDisplay').value = 'Turkey Time (UTC+3)';
+            
+            // Try to improve with geocoding if we have a location
+            var defaultLocation = document.getElementById('birthLocation').value;
+            // Note: geocoding is now handled by the interactive geocoder input
+        }
     }
-});// Bottom floating legend panel toggle (improved version)
+});
+
+// Bottom floating legend panel toggle (improved version)
 document.addEventListener('DOMContentLoaded', function () {
     var btn = document.getElementById('legendToggle');
     var panel = document.getElementById('legendPanel');

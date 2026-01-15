@@ -580,6 +580,13 @@ body {
     transition: all 0.3s ease;
 }
 
+/* Specific styling for select options */
+.form-group select option {
+    background: var(--secondary-bg);
+    color: var(--text-primary);
+    padding: 0.5rem;
+}
+
 .form-group input:focus,
 .form-group select:focus {
     outline: none;
