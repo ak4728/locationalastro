@@ -160,7 +160,7 @@ body {
     text-align: center;
     position: relative;
     overflow: hidden;
-    background: url('images/background.png') center center / cover no-repeat;
+    background: url('images/background.jpg') center center / cover no-repeat;
     background-attachment: fixed;
     min-height: 100vh;
     display: flex;
@@ -985,7 +985,7 @@ body {
     padding: 6rem 0;
     position: relative;
     overflow: hidden;
-    background: url('images/background2.png') center center / cover no-repeat;
+    background: url('images/background2.jpg') center center / cover no-repeat;
     background-attachment: fixed;
 }
 
