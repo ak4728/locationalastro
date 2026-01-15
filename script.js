@@ -1,6 +1,12 @@
-// Only initialize map if map container exists (i.e., on map.html page)
+console.log('=== SCRIPT.JS LOADED ===');
+console.log('Current page:', window.location.pathname);
+console.log('Map page initialized:', window.mapPageInitialized || false);
+console.log('Is generating map:', window.isGeneratingMap || false);
+
+// Only initialize map if map container exists AND map not already initialized
 var map;
-if (document.getElementById('map')) {
+if (document.getElementById('map') && !window.map) {
+    console.log('Initializing map from script.js...');
     map = L.map('map', {
         center: [20, 0],
         zoom: 2,
@@ -13,6 +19,13 @@ if (document.getElementById('map')) {
         attribution: '© OpenStreetMap contributors',
         noWrap: false
     }).addTo(map);
+    
+    // Make map globally accessible
+    window.map = map;
+    console.log('Map initialized and stored in window.map');
+} else if (window.map) {
+    console.log('Map already initialized, reusing existing map');
+    map = window.map;
 }
 
 // Smooth scrolling navigation
@@ -1278,12 +1291,80 @@ function calculateZodioLine(planetPos, birthLat, lineType, jd, tzOffset) {
 }
 
 function generateMap() {
+    // Prevent multiple simultaneous generations (emergency brake)
+    if (window.isGeneratingMap) {
+        console.log('Map generation already in progress, skipping duplicate call');
+        return;
+    }
+
+    // Check if we're on map.html - if so, don't run the redirect version
+    if (window.location.pathname.includes('map.html') || window.mapPageInitialized) {
+        console.log('On map.html, skipping redirect-based generateMap');
+        return;
+    }
+
+    // Set flag to prevent duplicate calls
+    window.isGeneratingMap = true;
+
+    try {
+        var dateStr = document.getElementById('birthDate').value;
+        var timeStr = document.getElementById('birthTime').value;
+        var lat = parseFloat(document.getElementById('birthLat').value);
+        var lon = parseFloat(document.getElementById('birthLon').value);
+        var tzOffset = parseFloat(document.getElementById('tzOffset').value);
+        var location = document.getElementById('birthLocation').value;
+        var coordinateSystem = document.getElementById('coordinateSystem').value;
+
+        if (!dateStr || !timeStr) {
+            alert('Please fill in birth date and time');
+            return;
+        }
+
+        if (isNaN(lat) || isNaN(lon)) {
+            alert('Location coordinates are missing. Please enter a valid location and wait for it to be resolved.');
+            geocodeLocation();
+            return;
+        }
+
+        if (isNaN(tzOffset)) {
+            alert('Timezone information is missing. Please enter a valid location.');
+            return;
+        }
+
+        // Create URL parameters for map page
+        const params = new URLSearchParams({
+            date: dateStr,
+            time: timeStr,
+            location: encodeURIComponent(location),
+            lat: lat.toString(),
+            lon: lon.toString(),
+            tz: tzOffset.toString(),
+            system: coordinateSystem
+        });
+        
+        // Redirect to map page with parameters
+        window.location.href = 'map.html?' + params.toString();
+        
+    } finally {
+        // Reset flag
+        setTimeout(() => {
+            window.isGeneratingMap = false;
+        }, 1000);
+    }
+}
+
+// Add the full generateAstrologyMap function for map.html
+function generateAstrologyMap() {
+    if (!window.map) {
+        console.error('Map not initialized');
+        return;
+    }
+
     var dateStr = document.getElementById('birthDate').value;
     var timeStr = document.getElementById('birthTime').value;
     var lat = parseFloat(document.getElementById('birthLat').value);
     var lon = parseFloat(document.getElementById('birthLon').value);
     var tzOffset = parseFloat(document.getElementById('tzOffset').value);
-    var location = document.getElementById('birthLocation').value;
     var coordinateSystem = document.getElementById('coordinateSystem').value;
 
     if (!dateStr || !timeStr) {
@@ -1293,7 +1374,6 @@ function generateMap() {
 
     if (isNaN(lat) || isNaN(lon)) {
         alert('Location coordinates are missing. Please enter a valid location and wait for it to be resolved.');
-        geocodeLocation();
         return;
     }
 
@@ -1302,19 +1382,225 @@ function generateMap() {
         return;
     }
 
-    // Create URL parameters for map page
-    const params = new URLSearchParams({
-        date: dateStr,
-        time: timeStr,
-        location: encodeURIComponent(location),
-        lat: lat.toString(),
-        lon: lon.toString(),
-        tz: tzOffset.toString(),
-        system: coordinateSystem
+    // Clear existing lines
+    for (var i = 0; i < currentLines.length; i++) {
+        window.map.removeLayer(currentLines[i]);
+    }
+    currentLines = [];
+
+    var dateParts = dateStr.split('-');
+    var year = parseInt(dateParts[0]);
+    var month = parseInt(dateParts[1]);
+    var day = parseInt(dateParts[2]);
+    
+    var timeParts = timeStr.split(':');
+    var hour = parseInt(timeParts[0]);
+    var minute = parseInt(timeParts[1]);
+    var second = timeParts[2] ? parseInt(timeParts[2]) : 0;
+
+    var birthDate = new Date(Date.UTC(year, month - 1, day, hour - tzOffset, minute, second));
+    
+    var jd = getJulianDay(birthDate);
+    var lst = getSiderealTime(jd, lon);
+
+    var planetaryData = [];
+
+    for (var i = 0; i < planets.length; i++) {
+        var planet = planets[i];
+        var planetPos = getPlanetPosition(planet.name, jd);
+        
+        for (var j = 0; j < lineTypes.length; j++) {
+            var lineType = lineTypes[j];
+            
+            // Branch based on coordinate system
+            var linePoints;
+            if (coordinateSystem === 'zodio') {
+                linePoints = calculateZodioLine(planetPos, lat, lineType, jd, tzOffset);
+                console.log('Using Zodio calculation for', planet.name, lineType);
+            } else {
+                // Use Mundo calculation (the corrected one)
+                linePoints = calculateMundoLine(planetPos, lat, lineType, jd, tzOffset);
+                console.log('Using Mundo calculation for', planet.name, lineType);
+            }
+            
+            // Skip if no valid points
+            if (!linePoints || linePoints.length === 0) {
+                console.log('Skipping', planet.name, lineType, '- no valid points');
+                continue;
+            }
+            
+            var line = L.polyline(linePoints, {
+                color: planet.color,
+                weight: 2.5,
+                opacity: 0.8,
+                smoothFactor: 1.2
+            }).addTo(window.map);
+
+            var interpretation = interpretations[planet.name] && interpretations[planet.name][lineType] 
+                ? interpretations[planet.name][lineType] 
+                : 'This celestial line brings the energy of ' + planet.name + ' to this location.';
+            
+            // Break long interpretations into multiple lines
+            var formattedInterpretation = interpretation.length > 60 
+                ? interpretation.replace(/[,.] /g, function(match, offset) {
+                    return offset > 30 ? match.charAt(0) + '<br>' : match;
+                })
+                : interpretation;
+            
+            var tooltipContent = '<div style="max-width: 250px; font-size: 0.9em; line-height: 1.3;">' +
+                '<strong style="color: ' + planet.color + ';">' + planet.symbol + ' ' + planet.name + ' ' + lineType + '</strong><br><br>' +
+                '<div style="margin: 5px 0; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 5px; font-size: 0.85em;">' +
+                formattedInterpretation + '</div>' +
+                '</div>';
+            
+            // Use tooltip instead of popup for hover functionality
+            line.bindTooltip(tooltipContent, {
+                permanent: false,
+                direction: 'auto',
+                className: 'custom-tooltip'
+            });
+
+            currentLines.push(line);
+            
+            // Add planet symbols along the line at key points
+            var symbolPositions = [];
+            if (linePoints.length > 10) {
+                var step = Math.floor(linePoints.length / 5);
+                for (var s = 0; s < linePoints.length; s += step) {
+                    if (symbolPositions.length < 5) {
+                        symbolPositions.push(linePoints[s]);
+                    }
+                }
+            } else {
+                symbolPositions = linePoints.slice(0, 3);
+            }
+            
+            var iconHtml = '<div style="font-size: 20px; color: ' + planet.color + '; text-shadow: 0 0 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.5); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">' + planet.symbol + '</div>';
+            var planetIcon = L.divIcon({
+                html: iconHtml,
+                className: 'planet-icon',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+            
+            for (var k = 0; k < symbolPositions.length; k++) {
+                var marker = L.marker(symbolPositions[k], {
+                    icon: planetIcon
+                }).addTo(window.map);
+                
+                marker.bindTooltip(tooltipContent, {
+                    permanent: false,
+                    direction: 'auto',
+                    className: 'custom-tooltip'
+                });
+                currentLines.push(marker);
+            }
+            
+            planetaryData.push({
+                planet: planet.name,
+                symbol: planet.symbol,
+                color: planet.color
+            });
+        }
+    }
+
+    // Update legend
+    var uniquePlanets = [];
+    var seenPlanets = {};
+    for (var k = 0; k < planetaryData.length; k++) {
+        var p = planetaryData[k];
+        if (!seenPlanets[p.planet]) {
+            uniquePlanets.push(p);
+            seenPlanets[p.planet] = true;
+        }
+    }
+    
+    var planetList = document.getElementById('planetList');
+    if (planetList) {
+        var planetHTML = '';
+        for (var m = 0; m < uniquePlanets.length; m++) {
+            var planet = uniquePlanets[m];
+            planetHTML += '<div style="display: flex; align-items: center; gap: 6px; padding: 3px; font-size: 0.8rem;">' +
+                '<span style="color: ' + planet.color + '; font-size: 1rem; min-width: 18px;">' + planet.symbol + '</span>' +
+                '<span style="color: #fff; flex: 1;">' + planet.planet + '</span>' +
+            '</div>';
+        }
+        planetList.innerHTML = planetHTML;
+    }
+
+    // Add birth location marker
+    var birthLocationName = document.getElementById('birthLocation').value || 'Birth Location';
+    var birthIcon = L.divIcon({
+        html: '<div style="background: #ff4757; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">🏠</div>',
+        className: 'birth-location-icon',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
     });
     
-    // Redirect to map page with parameters
-    window.location.href = 'map.html?' + params.toString();
+    var birthMarker = L.marker([lat, lon], {
+        icon: birthIcon,
+        zIndexOffset: 1000
+    }).addTo(window.map);
+    
+    birthMarker.bindTooltip(
+        '<div style="font-size: 0.9em; text-align: center;"><strong>🏠 Birth Location</strong><br>' + 
+        birthLocationName + '<br>' +
+        '<small>' + lat.toFixed(4) + '°, ' + lon.toFixed(4) + '°</small></div>',
+        {
+            permanent: false,
+            direction: 'top',
+            className: 'custom-tooltip'
+        }
+    );
+    
+    currentLines.push(birthMarker);
+
+    // Add planetary position markers (where each planet is overhead at birth time)
+    console.log('Adding planetary position markers...');
+    var gmst = getSiderealTime(jd, 0);
+    
+    for (var i = 0; i < planets.length; i++) {
+        var planet = planets[i];
+        var planetPos = getPlanetPosition(planet.name, jd);
+        
+        // Calculate where planet is at zenith (directly overhead)
+        var planetLon = normalize180(planetPos.ra - gmst);
+        var planetLat = planetPos.dec;
+        
+        console.log(planet.name + ' overhead at:', planetLat.toFixed(2) + '°, ' + planetLon.toFixed(2) + '°');
+        
+        // Only show if within reasonable bounds
+        if (Math.abs(planetLat) <= 80) {
+            var planetLocationIcon = L.divIcon({
+                html: '<div style="background: ' + planet.color + '; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.5);">' + planet.symbol + '</div>',
+                className: 'planet-position-icon',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+            
+            var planetMarker = L.marker([planetLat, planetLon], {
+                icon: planetLocationIcon,
+                zIndexOffset: 1500
+            }).addTo(window.map);
+            
+            var planetTooltipContent = '<div style="text-align: center; font-size: 0.9em;">' +
+                '<strong style="color: ' + planet.color + ';">' + planet.symbol + ' ' + planet.name + '</strong><br>' +
+                'Overhead Position<br>' +
+                '<small>' + planetLat.toFixed(2) + '°, ' + planetLon.toFixed(2) + '°</small><br>' +
+                '<small>RA: ' + planetPos.ra.toFixed(2) + '° | Dec: ' + planetPos.dec.toFixed(2) + '°</small>' +
+                '</div>';
+            
+            planetMarker.bindTooltip(planetTooltipContent, {
+                permanent: false,
+                direction: 'top',
+                className: 'custom-tooltip'
+            });
+            
+            currentLines.push(planetMarker);
+        }
+    }
+
+    console.log('Generated', currentLines.length, 'map elements');
 }
 
 function getTimezone(lat, lon) {
@@ -1430,7 +1716,11 @@ function loadFromUrl() {
     }
     
     // Only auto-generate map if we have date/time params AND we're NOT on the map page already
-    if (urlParams.has('date') && urlParams.has('time') && !window.location.pathname.includes('map.html')) {
+    // AND we haven't already initialized the map page
+    if (urlParams.has('date') && urlParams.has('time') && 
+        !window.location.pathname.includes('map.html') && 
+        !window.mapPageInitialized) {
+        console.log('Auto-generating map from URL parameters...');
         setTimeout(generateMap, 500);
     }
 }
@@ -1502,7 +1792,9 @@ if (shareBtn) {
 
 window.addEventListener('load', function() {
     // Only load from URL and set defaults if we're on the map page (has map container)
-    if (document.getElementById('map')) {
+    // BUT NOT if we're on map.html (it has its own initialization in the HTML file)
+    if (document.getElementById('map') && !window.location.pathname.includes('map.html') && !window.mapPageInitialized) {
+        console.log('Loading from URL on index page...');
         loadFromUrl();
         
         var birthLatEl = document.getElementById('birthLat');
@@ -1526,16 +1818,276 @@ window.addEventListener('load', function() {
     }
 });
 
-// Bottom floating legend panel toggle (improved version)
+// Mundo (Local Space) coordinate system calculation
+function calculateMundoLine(planetPos, birthLat, lineType, jd, tzOffset) {
+    console.log('Calculating Mundo', lineType, 'for', planetPos.ra.toFixed(2), planetPos.dec.toFixed(2));
+    
+    // CRITICAL: Calculate GMST first - this was missing!
+    var gmst = getSiderealTime(jd, 0);
+    
+    var raDeg = normalize360(planetPos.ra);
+    var decDeg = planetPos.dec;
+    var decRad = decDeg * Math.PI / 180;
+    var points = [];
+
+    // MC and IC are constant longitude lines
+    if (lineType === 'MC' || lineType === 'IC') {
+        var lstNeeded = (lineType === 'MC') ? raDeg : (raDeg + 180);
+        var lon = normalize180(lstNeeded - gmst);  // ✅ NOW USES GMST
+        
+        for (var lat = -80; lat <= 80; lat += 2) {
+            points.push([lat, lon]);
+        }
+
+        console.log('Mundo', lineType, 'found', points.length, 'points at longitude', lon.toFixed(2));
+        return points.length > 5 ? points : null;
+    }
+
+    // AC and DC are rising and setting lines, depend on latitude
+    if (lineType === 'AC' || lineType === 'DC') {
+        // At very high latitudes some bodies do not rise or set
+        var maxLat = Math.min(89, 90 - Math.abs(decDeg));
+        var prevLon = null;
+
+        // Extended range to better handle polar regions
+        for (var lat = -maxLat; lat <= maxLat; lat += 0.5) {
+            var latRad = lat * Math.PI / 180;
+
+            // Horizon condition: cos(H0) = -tan(phi) * tan(delta)
+            var cosH0 = -Math.tan(latRad) * Math.tan(decRad);
+
+            // No rise or set at this latitude
+            if (cosH0 < -1 || cosH0 > 1) continue;
+
+            var H0deg = Math.acos(cosH0) * 180 / Math.PI;
+
+            // Rising: LST = RA - H0, Setting: LST = RA + H0
+            var lstNeeded = (lineType === 'AC') ? (raDeg - H0deg) : (raDeg + H0deg);
+
+            // Convert needed LST to longitude: LST = GMST + longitude
+            var lon = normalize180(lstNeeded - gmst);  // ✅ NOW USES GMST
+
+            // Keep continuity across the dateline
+            lon = unwrapLongitude(lon, prevLon);
+            prevLon = lon;
+
+            points.push([lat, lon]);
+        }
+
+        console.log('Mundo', lineType, 'found', points.length, 'points');
+        return points.length > 5 ? points : null;
+    }
+
+    return null;
+}
+
+// Topocentric coordinate system calculation
+function calculateTopoLine(planetPos, birthLat, lineType, jd, tzOffset) {
+    console.log('Calculating Topocentric', lineType, 'for', planetPos.ra.toFixed(2), planetPos.dec.toFixed(2));
+    var points = [];
+    
+    // Topocentric system accounts for Earth's curvature and local observations
+    var planetRA = normalize360(planetPos.ra);
+    var planetDec = planetPos.dec;
+    
+    if (lineType === 'MC' || lineType === 'IC') {
+        // Similar to geodetic but with topocentric corrections
+        var targetLon = (lineType === 'MC') ? planetRA - 180 : planetRA;
+        targetLon = normalize180(targetLon);
+        
+        for (var lat = -80; lat <= 80; lat += 2) {
+            // Apply small topocentric correction
+            var correctedLon = targetLon + (Math.sin(lat * Math.PI / 180) * 0.1);
+            points.push([lat, normalize180(correctedLon)]);
+        }
+    } else if (lineType === 'AC' || lineType === 'DC') {
+        // Rising/setting with topocentric corrections
+        for (var lat = -80; lat <= 80; lat += 1) {
+            if (Math.abs(lat) > 85) continue;
+            
+            var hourAngle = calculateHourAngleForRiseSet(lat, planetDec, lineType === 'AC');
+            if (hourAngle === null) continue;
+            
+            // Apply topocentric correction
+            var topoCorrection = 0.0024 * Math.cos(lat * Math.PI / 180);
+            var correctedHourAngle = hourAngle + topoCorrection;
+            
+            var lon = normalize180(planetRA - correctedHourAngle * 15);
+            points.push([lat, lon]);
+        }
+    }
+    
+    console.log('Topocentric', lineType, 'found', points.length, 'points');
+    return points;
+}
+
+// Helper function for rise/set calculations
+function calculateHourAngleForRiseSet(lat, dec, isRising) {
+    var latRad = lat * Math.PI / 180;
+    var decRad = dec * Math.PI / 180;
+    
+    // Standard astronomical formula for hour angle at rise/set
+    var cosH = -Math.tan(latRad) * Math.tan(decRad);
+    
+    // Check if the object rises/sets at this latitude
+    if (Math.abs(cosH) > 1) {
+        return null; // Circumpolar or never rises
+    }
+    
+    var hourAngle = Math.acos(cosH) * 180 / Math.PI;
+    return isRising ? hourAngle / 15 : -hourAngle / 15; // Convert to hours
+}
+
+// Add function to generate astrology lines for map.html
+function generateAstrologyLines() {
+    console.log('=== GENERATING ASTROLOGY LINES ===');
+    
+    if (!window.map) {
+        console.error('Map not initialized');
+        return;
+    }
+    
+    // Get birth data
+    var dateStr = document.getElementById('birthDate').value;
+    var timeStr = document.getElementById('birthTime').value;
+    var lat = parseFloat(document.getElementById('birthLat').value);
+    var lon = parseFloat(document.getElementById('birthLon').value);
+    var tzOffset = parseFloat(document.getElementById('tzOffset').value);
+    var coordinateSystem = document.getElementById('coordinateSystem').value;
+    
+    console.log('Birth data:', { dateStr, timeStr, lat, lon, tzOffset, coordinateSystem });
+    
+    if (!dateStr || !timeStr || isNaN(lat) || isNaN(lon) || isNaN(tzOffset)) {
+        console.error('Invalid birth data');
+        return;
+    }
+    
+    // Parse date and time
+    var birthDateTime = new Date(dateStr + 'T' + timeStr);
+    var utcDateTime = new Date(birthDateTime.getTime() - (tzOffset * 60 * 60 * 1000));
+    var jd = (utcDateTime.getTime() / 86400000) + 2440587.5;
+    
+    console.log('Julian day:', jd);
+    
+    // Clear existing lines
+    if (window.astrologyLines) {
+        window.astrologyLines.forEach(layer => {
+            if (window.map.hasLayer(layer)) {
+                window.map.removeLayer(layer);
+            }
+        });
+    }
+    window.astrologyLines = [];
+    
+    // Generate lines for each planet
+    var planets = [
+        { name: 'Sun', color: '#FFD700', symbol: '☉' },
+        { name: 'Moon', color: '#C0C0C0', symbol: '☽' },
+        { name: 'Mercury', color: '#87CEEB', symbol: '☿' },
+        { name: 'Venus', color: '#FF69B4', symbol: '♀' },
+        { name: 'Mars', color: '#FF4500', symbol: '♂' },
+        { name: 'Jupiter', color: '#FFA500', symbol: '♃' },
+        { name: 'Saturn', color: '#8B4513', symbol: '♄' },
+        { name: 'Uranus', color: '#40E0D0', symbol: '♅' },
+        { name: 'Neptune', color: '#4169E1', symbol: '♆' },
+        { name: 'Pluto', color: '#8A2BE2', symbol: '♇' }
+    ];
+    
+    var legendPlanetList = document.getElementById('planetList');
+    if (legendPlanetList) {
+        legendPlanetList.innerHTML = '';
+    }
+    
+    planets.forEach(function(planet) {
+        try {
+            var planetPos = getPlanetPosition(planet.name, jd);
+            if (!planetPos) {
+                console.warn('Could not get position for', planet.name);
+                return;
+            }
+            
+            console.log('Processing', planet.name, 'at position:', planetPos);
+            
+            // Generate lines for each cardinal point (AC, DC, MC, IC)
+            var lineTypes = ['AC', 'DC', 'MC', 'IC'];
+            
+            lineTypes.forEach(function(lineType) {
+                try {
+                    var lineData;
+                    
+                    if (coordinateSystem === 'zodio') {
+                        lineData = calculateZodioLine(planetPos, lat, lineType, jd, tzOffset);
+                    } else {
+                        // Default mundo system
+                        lineData = calculateMundoLine(planetPos, lat, lineType, jd, tzOffset);
+                    }
+                    
+                    if (lineData && lineData.length > 0) {
+                        var polyline = L.polyline(lineData, {
+                            color: planet.color,
+                            weight: 2,
+                            opacity: 0.7,
+                            dashArray: lineType === 'DC' || lineType === 'IC' ? '5, 5' : null
+                        });
+                        
+                        // Add popup with planet and line info
+                        polyline.bindPopup(`<strong>${planet.symbol} ${planet.name}</strong><br/>${lineType} Line`);
+                        
+                        polyline.addTo(window.map);
+                        window.astrologyLines.push(polyline);
+                        
+                        console.log('Added', planet.name, lineType, 'line with', lineData.length, 'points');
+                    }
+                } catch (error) {
+                    console.error('Error calculating line for', planet.name, lineType, ':', error);
+                }
+            });
+            
+            // Add to legend
+            if (legendPlanetList) {
+                var planetItem = document.createElement('div');
+                planetItem.className = 'planet-item';
+                planetItem.innerHTML = `
+                    <span class="planet-symbol" style="color: ${planet.color}">${planet.symbol}</span>
+                    <span class="planet-name">${planet.name}</span>
+                `;
+                legendPlanetList.appendChild(planetItem);
+            }
+            
+        } catch (error) {
+            console.error('Error processing planet', planet.name, ':', error);
+        }
+    });
+    
+    console.log('Generated', window.astrologyLines.length, 'astrology lines');
+}
+
+// Legend toggle - Ensure only one listener
 document.addEventListener('DOMContentLoaded', function () {
     var btn = document.getElementById('legendToggle');
     var panel = document.getElementById('legendPanel');
-    if (!btn || !panel) return;
     
-    btn.addEventListener('click', function () {
-        var open = panel.classList.toggle('open');
-        panel.setAttribute('aria-hidden', open ? 'false' : 'true');
-        btn.textContent = open ? 'Hide legend' : 'Legend';
+    if (!btn || !panel) {
+        console.warn('Legend elements not found:', { btn: !!btn, panel: !!panel });
+        return;
+    }
+    
+    console.log('Legend toggle initialized');
+    
+    // Remove any existing listeners
+    var newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    btn = newBtn;
+    
+    btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var isOpen = panel.classList.toggle('open');
+        panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+        btn.textContent = isOpen ? '✕ Close' : 'Legend';
+        
+        console.log('Legend toggled:', isOpen);
     });
 });
 

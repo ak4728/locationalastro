@@ -194,7 +194,7 @@
                         </div>
 
                         <div class="form-group coordinates-group" id="coordsGroup" style="display: block;">
-                            <label>Coordinates (auto-detected)</label>
+                            <label>🌐 Coordinates (auto-detected)</label>
                             <div class="coordinates-input">
                                 <input type="number" id="birthLat" step="any" placeholder="Latitude" value="41.0082" readonly>
                                 <input type="number" id="birthLon" step="any" placeholder="Longitude" value="28.9784" readonly>
@@ -207,10 +207,10 @@
                             <input type="hidden" id="tzOffset" value="3">
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group" style="display: none;">
                             <label for="coordinateSystem">🗺️ Coordinate System</label>
                             <select id="coordinateSystem">
-                                <option value="geodetic">Geodetic (Standard)</option>
+                                <option value="mundo" selected>Mundo (Local Space)</option>
                                 <option value="zodio">Zodio (Alternative)</option>
                             </select>
                         </div>

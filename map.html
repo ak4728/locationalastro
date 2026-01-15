@@ -53,21 +53,6 @@
     <!-- Map Display Section -->
     <section class="map-display-section">
         <div class="container-full">
-            <div class="map-header">
-                <div class="map-title">
-                    <h1>Your Location Astrology Map</h1>
-                    <p id="mapDescription">Planetary influences across the globe</p>
-                </div>
-                <div class="map-controls">
-                    <button id="shareMapBtn" class="control-button">
-                        🔗 Share Map
-                    </button>
-                    <button id="editDataBtn" class="control-button">
-                        ✏️ Edit Data
-                    </button>
-                </div>
-            </div>
-            
             <div class="map-stage" id="map-stage">
                 <div id="map" class="astro-map"></div>
 
@@ -109,19 +94,42 @@
         <input type="text" id="tzDisplay">
         <input type="hidden" id="tzOffset">
         <select id="coordinateSystem">
-            <option value="geodetic">Geodetic (Standard)</option>
+            <option value="mundo">Mundo (Local Space)</option>
             <option value="zodio">Zodio (Alternative)</option>
         </select>
     </div>
 
     <!-- Scripts -->
+    <!-- Emergency brake - MUST run before script.js -->
+    <script>
+        console.log('=== MAP.HTML EMERGENCY BRAKE ACTIVATED ===');
+        // Use more robust path detection for local files
+        var isMapPage = window.location.href.includes('map.html') || window.location.pathname.includes('map.html');
+        console.log('Is map page:', isMapPage);
+        console.log('Current URL:', window.location.href);
+        
+        if (isMapPage) {
+            console.log('Setting map page flags...');
+            window.mapPageInitialized = true;
+            window.isGeneratingMap = true;
+            
+            // Safety timeout to reset generating flag
+            setTimeout(function() {
+                console.log('Resetting isGeneratingMap flag after safety timeout');
+                window.isGeneratingMap = false;
+            }, 3000);
+        }
+    </script>
+    
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
     <script src="script.js"></script>
     
     <script>
         // Initialize map page
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== MAP.HTML DOMContentLoaded ===');
             initializeMapPage();
         });
         
@@ -129,24 +137,33 @@
             // Load data from URL parameters or localStorage
             loadMapData();
             
-            // Generate the map immediately
-            setTimeout(() => {
-                generateMap();
-            }, 500);
-            
             // Setup navigation
             document.getElementById('newMapBtn')?.addEventListener('click', () => {
                 window.location.href = 'index.html';
             });
             
-            document.getElementById('editDataBtn')?.addEventListener('click', () => {
-                const params = new URLSearchParams(window.location.search);
-                window.location.href = 'index.html?' + params.toString();
-            });
-            
-            document.getElementById('shareMapBtn')?.addEventListener('click', () => {
-                shareMap();
-            });
+            // Initialize legend toggle
+            setTimeout(function() {
+                const btn = document.getElementById('legendToggle');
+                const panel = document.getElementById('legendPanel');
+                
+                if (btn && panel) {
+                    console.log('Setting up legend toggle');
+                    
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const isOpen = panel.classList.toggle('open');
+                        panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+                        this.textContent = isOpen ? '✕ Close' : 'Legend';
+                        
+                        console.log('Legend toggled:', isOpen);
+                    });
+                } else {
+                    console.warn('Legend elements not found');
+                }
+            }, 500);
         }
         
         function loadMapData() {
@@ -160,16 +177,68 @@
                 document.getElementById('birthLat').value = params.get('lat');
                 document.getElementById('birthLon').value = params.get('lon');
                 document.getElementById('tzOffset').value = params.get('tz');
-                document.getElementById('coordinateSystem').value = params.get('system') || 'geodetic';
-                
-                // Update page description
-                const location = decodeURIComponent(params.get('location'));
-                const date = params.get('date');
-                document.getElementById('mapDescription').textContent = `Born ${date} in ${location}`;
+                document.getElementById('coordinateSystem').value = params.get('system') || 'mundo';
                 
                 // Update data summary
                 updateDataSummary();
+                
+                // Render the map with astrology lines
+                renderMap();
             }
+        }
+        
+        function renderMap() {
+            console.log('=== RENDERING MAP ON MAP.HTML ===');
+            
+            // Get birth data from hidden form elements
+            const birthLat = parseFloat(document.getElementById('birthLat').value);
+            const birthLon = parseFloat(document.getElementById('birthLon').value);
+            const coordinateSystem = document.getElementById('coordinateSystem').value;
+            
+            console.log('Birth coordinates:', birthLat, birthLon);
+            console.log('Coordinate system:', coordinateSystem);
+            
+            // DON'T create map - it's already created by script.js
+            // Just verify it exists
+            if (!window.map) {
+                console.error('Map not initialized by script.js!');
+                return;
+            }
+            
+            console.log('Map exists, centering on birth location...');
+            
+            // Center map on birth location
+            window.map.setView([birthLat, birthLon], 2);
+            
+            // Add birth location marker
+            const birthMarker = L.marker([birthLat, birthLon]).addTo(window.map);
+            const location = document.getElementById('birthLocation').value;
+            birthMarker.bindPopup(`<strong>Birth Location</strong><br>${location}`);
+            
+            // Wait for map to be fully ready before generating lines
+            console.log('Waiting for map to be ready...');
+            setTimeout(function() {
+                console.log('Calling generateAstrologyMap...');
+                if (window.generateAstrologyMap) {
+                    try {
+                        window.generateAstrologyMap();
+                        console.log('Astrology lines generated successfully');
+                        
+                        // Force map to refresh/render
+                        setTimeout(function() {
+                            if (window.map) {
+                                window.map.invalidateSize();
+                                console.log('Map size invalidated to force refresh');
+                            }
+                        }, 100);
+                        
+                    } catch (error) {
+                        console.error('Error generating astrology lines:', error);
+                    }
+                } else {
+                    console.error('generateAstrologyMap function not available');
+                }
+            }, 1000); // Wait 1 second for map to be fully ready
         }
         
         function updateDataSummary() {
