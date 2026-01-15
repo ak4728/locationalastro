@@ -7,23 +7,37 @@ A comprehensive interactive web application that generates professional astrocar
 ### 🌍 Interactive Mapping
 - Zoomable/pannable world map with Leaflet.js
 - **AC/DC curved lines and MC/IC straight longitude lines** for accurate astrocartography
-- Floating legend with toggle control
+- **100 major world cities** displayed as red dots with hover tooltips
+- Floating legend with toggle control and planet visibility toggles
 - Mobile-optimized responsive design
 
 ### 🪐 Complete Planetary Coverage
-- **10 planets**: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto
-- **4 angles per planet**: Ascendant (AC), Descendant (DC), Midheaven (MC), Imum Coeli (IC)
-- **40 total line types** with unique colors and symbols
+- **13 celestial points**: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, North Node, Chiron, Lilith, Part of Fortune
+- **4 angles per planet**: Ascendant (AC), Descendant (DC), Midheaven (MC), Imum Coeli (IC)  
+- **52 total line types** with unique colors and symbols
+- **Line type labels** positioned at highest/lowest points of planetary lines
 - Visual planetary symbols placed along curved line paths
+
+### 🌟 Zodiac Integration
+- **Sun/Moon/Rising signs** displayed in header with detailed hover tooltips
+- **Complete zodiac calculations** with personality trait descriptions
+- **Real-time zodiac display** updated based on birth data
+
+### 🌐 Multi-Language Support
+- **Bilingual interface**: Full English and Turkish translations
+- **Smart language detection**: Automatically preserves language across pages
+- **Complete localization**: Planet names, zodiac signs, UI elements, and descriptions
+- **Flag-based language switcher** with actual country flag icons
 
 ### 🧭 Smart Location Features
 - **One-click geocoding** - enter any city name and get coordinates automatically
 - **URL sharing** - generate shareable links for your astrocartography maps
 - **Auto-load from URLs** - maps load automatically from shared parameters
+- **Map export** - save your astrology map as PNG image
 
 ### 📚 Professional Interpretations
-- **Detailed popup content** for each planetary line
-- **40 unique interpretations** covering all planet-angle combinations
+- **Detailed popup content** for each planetary line  
+- **52 unique interpretations** covering all planet-angle combinations
 - **Astrological insights** explaining the meaning of each line
 - **Technical data** including RA, Dec, and coordinate information
 
@@ -34,20 +48,26 @@ A comprehensive interactive web application that generates professional astrocar
 - **Keyboard shortcuts** (Enter key for geocoding)
 
 ## 🛠️ Tech Stack
-- **Frontend**: Pure HTML5, CSS3, JavaScript (ES5 for compatibility)
+- **Frontend**: Pure HTML5, CSS3, JavaScript (ES6+) 
 - **Mapping**: Leaflet.js with OpenStreetMap tiles
 - **Geocoding**: OpenStreetMap Nominatim API (free, no API key required)
+- **Astronomy**: Astronomy Engine for precise planetary calculations
 - **Calculations**: Spherical trigonometry for curved astrocartography lines
-- **Astronomy**: Julian Day, Sidereal Time, and planetary position algorithms
+- **Export**: Leaflet-image plugin for PNG map export
+- **Internationalization**: Custom translation system with localStorage persistence
 
 ## 🚀 Usage
 
-1. **Open** `index.html` in any modern web browser
-2. **Enter your birth data** or use the pre-filled default values
-3. **Use geocoding**: Type a city name and click 📍 or press Enter
-4. **Generate map**: Click "Generate Map" to see your astrocartography chart
-5. **Explore**: Click any line for interpretations, toggle legend with ☰ button
-6. **Share**: Use "Share Map" to generate a shareable URL
+1. **Select Language**: Choose English 🇺🇸 or Turkish 🇹🇷 from the flag button
+2. **Open** `index.html` in any modern web browser
+3. **Enter your birth data** or use the pre-filled default values
+4. **Use geocoding**: Type a city name and coordinates will auto-populate
+5. **Generate map**: Click "Generate Map" to see your astrocartography chart
+6. **Explore**: Click any line for interpretations, toggle planets in legend
+7. **View cities**: Hover over red dots to see major world cities
+8. **Check zodiac**: View your Sun/Moon/Rising signs in the header
+9. **Save map**: Click 💾 to export your map as PNG image
+10. **Share**: Generate shareable URLs that preserve language and data
 
 ## 🎯 Astrocartography Line Types
 
@@ -58,16 +78,19 @@ A comprehensive interactive web application that generates professional astrocar
 
 ## 🌟 What Makes This Special
 
-- **Accurate curved lines**: Unlike simple parallel longitude lines, this uses proper spherical calculations
-- **Professional interpretations**: Each line includes meaningful astrological guidance
-- **Complete coverage**: All 10 major planets with outer planet calculations
+- **Bilingual support**: Complete Turkish and English localization
+- **Accurate curved lines**: Unlike simple parallel longitude lines, uses proper spherical calculations
+- **Professional interpretations**: Each line includes meaningful astrological guidance  
+- **Complete coverage**: All major planets plus lunar nodes, asteroids, and Part of Fortune
+- **Modern UX**: Glassmorphism design with instant tooltips and smooth animations
 - **No dependencies**: Runs completely offline after initial load
 - **Mobile-first**: Designed to work perfectly on all devices
+- **Export ready**: Save and share your personalized astrology maps
 
 ## 🔮 Future Enhancements
 
+- Additional language support (Spanish, German, French)
 - Swiss Ephemeris integration for research-grade accuracy
-- Additional asteroids and sensitive points
-- PDF export functionality  
-- Historical ephemeris data for past centuries
+- Additional asteroids and Arabic parts
 - Advanced aspects and parans calculations
+- Historical ephemeris data for past centuries

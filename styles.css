@@ -120,6 +120,40 @@ body {
     border-bottom-color: var(--primary-purple);
 }
 
+/* Language Switcher */
+.language-switcher {
+    margin-right: 1rem;
+}
+
+.lang-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 0.5rem 0.8rem;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+}
+
+.lang-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.lang-btn.active {
+    background: var(--primary-purple);
+    border-color: var(--primary-purple);
+}
+
+/* Flag icon styling */
+.flag-icon {
+    width: 20px;
+    height: 15px;
+    border-radius: 2px;
+    display: block;
+}
+
 /* Hero Section */
 .hero {
     padding: 8rem 2rem 8rem;
@@ -980,10 +1014,7 @@ body {
     font-size: 2.5rem;
     font-weight: 700;
     margin-bottom: 3rem;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: white;
 }
 
 .about-grid {
@@ -1051,10 +1082,7 @@ body {
 .card-icon {
     font-size: 3rem;
     margin-bottom: 1.5rem;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #ffffff;
 }
 
 .about-card h3 {
@@ -1893,6 +1921,31 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0;
+}
+
+.language-switcher {
+    margin: 0 10px;
+}
+
+.lang-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.2s ease;
+}
+
+.lang-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.lang-btn.active {
+    background: rgba(67, 102, 226, 0.3);
+    border-color: rgba(67, 102, 226, 0.5);
 }
 
 .horoscope-sign {

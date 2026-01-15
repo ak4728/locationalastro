@@ -95,6 +95,9 @@ document.addEventListener('DOMContentLoaded', function() {
             saveMapAsImage();
         });
     }
+    
+    // Initialize language system
+    initializeLanguage();
 });
 
 // Initialize location geocoder control
@@ -445,18 +448,18 @@ function displayHoroscopeInfo() {
     horoscopeInfo.innerHTML = 
         '<div class="horoscope-sign">' +
         '<div class="sign-symbol">☉' + sunSign.symbol + '</div>' +
-        '<div class="sign-name">Sun</div>' +
-        '<div class="tooltip"><strong>Sun in ' + sunSign.name + '</strong><br>Your core identity and ego.<br>' + sunSign.traits + '</div>' +
+        '<div class="sign-name">' + t('sun-label') + '</div>' +
+        '<div class="tooltip"><strong>' + t('sun-in') + ' ' + t(sunSign.name) + '</strong><br>' + t('core-identity') + '<br>' + t(sunSign.name.toLowerCase() + '-traits') + '</div>' +
         '</div>' +
         '<div class="horoscope-sign">' +
         '<div class="sign-symbol">☽' + moonSign.symbol + '</div>' +
-        '<div class="sign-name">Moon</div>' +
-        '<div class="tooltip"><strong>Moon in ' + moonSign.name + '</strong><br>Your emotions and inner world.<br>' + moonSign.traits + '</div>' +
+        '<div class="sign-name">' + t('moon-label') + '</div>' +
+        '<div class="tooltip"><strong>' + t('moon-in') + ' ' + t(moonSign.name) + '</strong><br>' + t('emotions-inner') + '<br>' + t(moonSign.name.toLowerCase() + '-traits') + '</div>' +
         '</div>' +
         '<div class="horoscope-sign">' +
         '<div class="sign-symbol">↑' + risingSign.symbol + '</div>' +
-        '<div class="sign-name">Rising</div>' +
-        '<div class="tooltip"><strong>Rising in ' + risingSign.name + '</strong><br>How others see you and your life approach.<br>' + risingSign.traits + '</div>' +
+        '<div class="sign-name">' + t('rising-label') + '</div>' +
+        '<div class="tooltip"><strong>' + t('rising-in') + ' ' + t(risingSign.name) + '</strong><br>' + t('others-see-you') + '<br>' + t(risingSign.name.toLowerCase() + '-traits') + '</div>' +
         '</div>';
 }
 
@@ -1744,7 +1747,8 @@ function generateMap() {
             lat: lat.toString(),
             lon: lon.toString(),
             tz: tzOffset.toString(),
-            system: coordinateSystem
+            system: coordinateSystem,
+            lang: currentLang
         });
         
         // Redirect to map page with parameters
@@ -2463,7 +2467,7 @@ function generateAstrologyLines() {
                 planetItem.style.cursor = 'pointer'; // Ensure clickable cursor
                 planetItem.innerHTML = `
                     <span class="planet-symbol" style="color: ${planet.color}">${planet.symbol}</span>
-                    <span class="planet-name">${planet.name}</span>
+                    <span class="planet-name">${t(planet.name)}</span>
                     <span class="toggle-indicator">✓</span>
                 `;
                 
@@ -2570,7 +2574,7 @@ function populateLegend() {
             planetItem.style.cursor = 'pointer';
             planetItem.innerHTML = `
                 <span class="planet-symbol" style="color: ${planet.color}">${planet.symbol}</span>
-                <span class="planet-name">${planet.name}</span>
+                <span class="planet-name">${t(planet.name)}</span>
                 <span class="toggle-indicator">✓</span>
             `;
             
@@ -2605,6 +2609,9 @@ function populateLegend() {
 // Map page initialization functions
 function initializeMapPage() {
     
+    // Initialize language system first (before loading data)
+    initializeLanguage();
+    
     // Load data from URL parameters or localStorage
     loadMapData();
     
@@ -2629,6 +2636,15 @@ function loadMapData() {
         document.getElementById('birthLon').value = params.get('lon');
         document.getElementById('tzOffset').value = params.get('tz');
         document.getElementById('coordinateSystem').value = params.get('system') || 'mundo';
+        
+        // Set language from URL parameter
+        if (params.has('lang')) {
+            const urlLang = params.get('lang');
+            if (translations[urlLang]) {
+                currentLang = urlLang;
+                localStorage.setItem('preferred_language', urlLang);
+            }
+        }
         
         // Update data summary
         updateDataSummary();
@@ -2678,10 +2694,10 @@ function renderMap() {
 function updateDataSummary() {
     const dataGrid = document.getElementById('dataGrid');
     const data = {
-        'Date': document.getElementById('birthDate').value,
-        'Time': document.getElementById('birthTime').value,
-        'Location': document.getElementById('birthLocation').value,
-        'System': document.getElementById('coordinateSystem').value
+        [t('Date')]: document.getElementById('birthDate').value,
+        [t('Time')]: document.getElementById('birthTime').value,
+        [t('Location')]: document.getElementById('birthLocation').value,
+        [t('System')]: document.getElementById('coordinateSystem').value
     };
     
     dataGrid.innerHTML = '';
@@ -2694,4 +2710,343 @@ function updateDataSummary() {
 }
 
 // Removed duplicate DOMContentLoaded listener - consolidated into main one
+
+// Language System Implementation
+var translations = {
+    en: {
+        // Navigation
+        "nav-create": "Create Map",
+        "nav-about": "About",
+        
+        // Hero section
+        "hero-title": "Discover Your Perfect Places",
+        "hero-subtitle": "Create personalized astrology maps showing where planetary energies influence your life. Enter your birth details below to explore cosmic influences worldwide.",
+        "create-map-btn": "Create Your Map",
+        
+        // Birth form
+        "birth-info-title": "Birth Information",
+        "birth-info-desc": "Enter your birth details to generate your personalized astrocartography map",
+        "birth-details": "📅 Birth Details",
+        "birth-date": "Birth Date",
+        "birth-time": "Birth Time",
+        "birth-location": "📍 Birth Location",
+        "coordinates": "🌐 Coordinates (auto-detected)",
+        "timezone": "🌍 Timezone",
+        "coordinate-system": "🗺️ Coordinate System",
+        "mundo": "Mundo (Local Space)",
+        "zodio": "Zodio (Alternative)",
+        "generate-map": "🌟 Generate Your Map",
+        "share-config": "📤 Share Configuration",
+        
+        // About section
+        "about-title": "What is Location Astrology?",
+        "location-astro-title": "Location-Based Astrology",
+        "location-astro-desc": "Discover how different locations around the world can influence your life based on your birth chart.",
+        "planetary-title": "Planetary Influences",
+        "planetary-desc": "Each planetary line represents different energies and life themes activated in specific geographic regions.",
+        "growth-title": "Personal Growth",
+        "growth-desc": "Use location astrology to make informed decisions about travel, relocation, and personal development.",
+        
+        // Footer
+        "footer-desc": "Amateur location astrology mapping tool for cosmic exploration.",
+        "footer-copy": "© 2026 LocationalAstro. Crafted with cosmic energy.",
+        
+        // Map legend
+        "rising-line": "Rising line",
+        "setting-line": "Setting line",
+        "overhead-line": "Overhead line",
+        "underfoot-line": "Underfoot line",
+        "ac-tooltip": "Ascendant line - Where planets are rising on the eastern horizon. Represents new beginnings, identity, and how you appear to others when this planet's energy is emphasized.",
+        "dc-tooltip": "Descendant line - Where planets are setting on the western horizon. Represents partnerships, relationships, and how others perceive you when this planet's energy is emphasized.",
+        "mc-tooltip": "Midheaven line - Where planets are at their highest point in the sky. Represents career, reputation, public image, and life direction when this planet's energy is emphasized.",
+        "ic-tooltip": "Imum Coeli line - Where planets are at their lowest point in the sky. Represents home, family, roots, and your private/inner world when this planet's energy is emphasized.",
+        
+        // Planet names
+        "Sun": "Sun",
+        "Moon": "Moon",
+        "Mercury": "Mercury",
+        "Venus": "Venus",
+        "Mars": "Mars",
+        "Jupiter": "Jupiter",
+        "Saturn": "Saturn",
+        "Uranus": "Uranus",
+        "Neptune": "Neptune",
+        "Pluto": "Pluto",
+        "North Node": "North Node",
+        "Chiron": "Chiron",
+        "Lilith": "Lilith",
+        "Part of Fortune": "Part of Fortune",
+        
+        // Birth info labels
+        "Date": "Date",
+        "Time": "Time",
+        "Location": "Location",
+        "System": "System",
+        
+        // Zodiac signs
+        "Aries": "Aries",
+        "Taurus": "Taurus",
+        "Gemini": "Gemini",
+        "Cancer": "Cancer",
+        "Leo": "Leo",
+        "Virgo": "Virgo",
+        "Libra": "Libra",
+        "Scorpio": "Scorpio",
+        "Sagittarius": "Sagittarius",
+        "Capricorn": "Capricorn",
+        "Aquarius": "Aquarius",
+        "Pisces": "Pisces",
+        
+        // Sign labels
+        "sun-label": "Sun",
+        "moon-label": "Moon",
+        "rising-label": "Rising",
+        "sun-in": "Sun in",
+        "moon-in": "Moon in",
+        "rising-in": "Rising in",
+        "core-identity": "Your core identity and ego.",
+        "emotions-inner": "Your emotions and inner world.",
+        "others-see-you": "How others see you and your life approach.",
+        
+        // Zodiac traits
+        "aries-traits": "Bold, pioneering, energetic. Natural leaders who love new beginnings and adventures.",
+        "taurus-traits": "Reliable, practical, sensual. Values stability, comfort, and material pleasures.",
+        "gemini-traits": "Curious, adaptable, communicative. Loves learning, socializing, and mental stimulation.",
+        "cancer-traits": "Nurturing, intuitive, protective. Deeply emotional and values home and family.",
+        "leo-traits": "Confident, generous, dramatic. Natural performer who loves attention and creative expression.",
+        "virgo-traits": "Analytical, helpful, perfectionist. Detail-oriented and strives for improvement in all areas.",
+        "libra-traits": "Harmonious, diplomatic, aesthetic. Values balance, beauty, and fair relationships.",
+        "scorpio-traits": "Intense, mysterious, transformative. Deeply emotional with strong intuition and determination.",
+        "sagittarius-traits": "Adventurous, philosophical, optimistic. Loves travel, learning, and exploring new horizons.",
+        "capricorn-traits": "Ambitious, disciplined, practical. Goal-oriented and values achievement and responsibility.",
+        "aquarius-traits": "Independent, innovative, humanitarian. Forward-thinking and values freedom and originality.",
+        "pisces-traits": "Compassionate, artistic, intuitive. Deeply empathetic with rich imagination and spiritual nature."
+    },
+    tr: {
+        // Navigation
+        "nav-create": "Harita Oluştur",
+        "nav-about": "Hakkında",
+        
+        // Hero section
+        "hero-title": "Mükemmel Yerlerinizi Keşfedin",
+        "hero-subtitle": "Gezegensel enerjilerin hayatınızı nerede etkilediğini gösteren kişiselleştirilmiş astroloji haritaları oluşturun. Dünya çapında kozmik etkileri keşfetmek için aşağıda doğum detaylarınızı girin.",
+        "create-map-btn": "Haritanızı Oluşturun",
+        
+        // Birth form
+        "birth-info-title": "Doğum Bilgileri",
+        "birth-info-desc": "Kişiselleştirilmiş astrocoğrafya haritanızı oluşturmak için doğum detaylarınızı girin",
+        "birth-details": "📅 Doğum Detayları",
+        "birth-date": "Doğum Tarihi",
+        "birth-time": "Doğum Saati",
+        "birth-location": "📍 Doğum Yeri",
+        "coordinates": "🌐 Koordinatlar (otomatik algılanan)",
+        "timezone": "🌍 Saat Dilimi",
+        "coordinate-system": "🗺️ Koordinat Sistemi",
+        "mundo": "Mundo (Yerel Alan)",
+        "zodio": "Zodio (Alternatif)",
+        "generate-map": "🌟 Haritanızı Oluşturun",
+        "share-config": "📤 Konfigürasyonu Paylaş",
+        
+        // About section
+        "about-title": "Konum Astrolojisi Nedir?",
+        "location-astro-title": "Konum Tabanlı Astroloji",
+        "location-astro-desc": "Doğum haritanıza göre dünyanın farklı yerlerinin hayatınızı nasıl etkileyebileceğini keşfedin.",
+        "planetary-title": "Gezegensel Etkiler",
+        "planetary-desc": "Her gezegensel çizgi, belirli coğrafi bölgelerde aktive olan farklı enerjileri ve yaşam temalarını temsil eder.",
+        "growth-title": "Kişisel Gelişim",
+        "growth-desc": "Seyahat, taşınma ve kişisel gelişim konularında bilinçli kararlar vermek için konum astrolojisini kullanın.",
+        
+        // Footer
+        "footer-desc": "Kozmik keşif için amatör konum astrolojisi haritalama aracı.",
+        "footer-copy": "© 2026 LocationalAstro. Kozmik enerji ile hazırlanmıştır.",
+        
+        // Map legend
+        "rising-line": "Yükselme çizgisi",
+        "setting-line": "Batış çizgisi",
+        "overhead-line": "Tepe noktası çizgisi",
+        "underfoot-line": "Alt nokta çizgisi",
+        "ac-tooltip": "Yükselç çizgisi - Gezegenlerin doğu ufkunda yükselmekte olduğu yerler. Bu gezegen enerjisi vurgulandığında yeni başlangıçlar, kimlik ve başkalarına nasıl göründüğünüzü temsil eder.",
+        "dc-tooltip": "Batış çizgisi - Gezegenlerin batı ufkunda batmakta olduğu yerler. Bu gezegen enerjisi vurgulandığında ortaklıklar, ilişkiler ve başkalarının sizi nasıl algıladığını temsil eder.",
+        "mc-tooltip": "Tepe noktası çizgisi - Gezegenlerin gökyüzünün en yüksek noktasında olduğu yerler. Bu gezegen enerjisi vurgulandığında kariyer, itibar, kamusal imaj ve yaşam yönünü temsil eder.",
+        "ic-tooltip": "Alt nokta çizgisi - Gezegenlerin gökyüzünün en alt noktasında olduğu yerler. Bu gezegen enerjisi vurgulandığında ev, aile, kökenler ve özel/iç dünyanızı temsil eder.",
+        
+        // Planet names
+        "Sun": "Güneş",
+        "Moon": "Ay",
+        "Mercury": "Merkür",
+        "Venus": "Venüs",
+        "Mars": "Mars",
+        "Jupiter": "Jüpiter",
+        "Saturn": "Satürn",
+        "Uranus": "Uranüs",
+        "Neptune": "Neptün",
+        "Pluto": "Plüton",
+        "North Node": "Kuzey Düğümü",
+        "Chiron": "Chiron",
+        "Lilith": "Lilith",
+        "Part of Fortune": "Talih Noktası",
+        
+        // Birth info labels
+        "Date": "Tarih",
+        "Time": "Saat",
+        "Location": "Konum",
+        "System": "Sistem",
+        
+        // Zodiac signs
+        "Aries": "Koç",
+        "Taurus": "Boğa",
+        "Gemini": "İkizler",
+        "Cancer": "Yengeç",
+        "Leo": "Aslan",
+        "Virgo": "Başak",
+        "Libra": "Terazi",
+        "Scorpio": "Akrep",
+        "Sagittarius": "Yay",
+        "Capricorn": "Oğlak",
+        "Aquarius": "Kova",
+        "Pisces": "Balık",
+        
+        // Sign labels
+        "sun-label": "Güneş",
+        "moon-label": "Ay",
+        "rising-label": "Yükselen",
+        "sun-in": "Güneş",
+        "moon-in": "Ay",
+        "rising-in": "Yükselen",
+        "core-identity": "Temel kimliğiniz ve egonuz.",
+        "emotions-inner": "Duygularınız ve iç dünyanız.",
+        "others-see-you": "Başkalarının sizi nasıl gördüğü ve yaşam yaklaşımınız.",
+        
+        // Zodiac traits
+        "aries-traits": "Cesur, öncü, enerjik. Yeni başlangıçları ve maceraları seven doğal liderler.",
+        "taurus-traits": "Güvenilir, pratik, duyusal. İstikrar, rahatlık ve maddi zevkleri değerlendirir.",
+        "gemini-traits": "Meraklı, uyumlu, iletişimci. Öğrenmeyi, sosyalleşmeyi ve zihinsel uyarımı sever.",
+        "cancer-traits": "Besleyici, sezgisel, koruyucu. Derinden duygusal, ev ve aileyi değerlendirir.",
+        "leo-traits": "Kendinden emin, cömert, dramatik. İlgiyi ve yaratıcı ifadeyi seven doğal performans sanatçısı.",
+        "virgo-traits": "Analitik, yardımsever, mükemmeliyetçi. Detay odaklı ve tüm alanlarda gelişim için çabalar.",
+        "libra-traits": "Uyumlu, diplomatik, estetik. Dengeyi, güzelliği ve adil ilişkileri değerlendirir.",
+        "scorpio-traits": "Yoğun, gizemli, dönüştürücü. Güçlü sezgi ve kararlılıkla derinden duygusal.",
+        "sagittarius-traits": "Maceracı, felsefi, iyimser. Seyahati, öğrenmeyi ve yeni ufukları keşfetmeyi sever.",
+        "capricorn-traits": "Hırslı, disiplinli, pratik. Hedef odaklı, başarıyı ve sorumluluğu değerlendirir.",
+        "aquarius-traits": "Bağımsız, yenilikçi, insancıl. İleri görüşlü, özgürlüğü ve özgünlüğü değerlendirir.",
+        "pisces-traits": "Şefkatli, sanatsal, sezgisel. Zengin hayal gücü ve ruhsal doğayla derinden empatik."
+    }
+};
+
+// Current language
+var currentLang = 'en';
+
+// Function to translate text
+function t(key) {
+    return translations[currentLang][key] || translations['en'][key] || key;
+}
+
+// Function to switch language
+function switchLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('preferred_language', lang);
+    
+    // Update language button
+    var langBtn = document.getElementById('langToggle');
+    if (langBtn) {
+        var flagImg = langBtn.querySelector('.flag-icon');
+        if (flagImg) {
+            flagImg.src = lang === 'en' ? 'https://flagcdn.com/20x15/tr.png' : 'https://flagcdn.com/20x15/us.png';
+            flagImg.alt = lang === 'en' ? 'TR' : 'EN';
+        }
+        langBtn.setAttribute('data-lang', lang === 'en' ? 'tr' : 'en');
+    }
+    
+    // Update all translatable elements
+    updatePageLanguage();
+}
+
+// Function to update page language
+function updatePageLanguage() {
+    // Update elements with data-translate attributes
+    document.querySelectorAll('[data-translate]').forEach(function(element) {
+        var key = element.getAttribute('data-translate');
+        if (element.tagName === 'INPUT' && (element.type === 'submit' || element.type === 'button')) {
+            element.value = t(key);
+        } else if (element.placeholder !== undefined && element.hasAttribute('data-translate-placeholder')) {
+            element.placeholder = t(key);
+        } else {
+            element.textContent = t(key);
+        }
+    });
+    
+    // Update elements with data-translate-title attributes
+    document.querySelectorAll('[data-translate-title]').forEach(function(element) {
+        var key = element.getAttribute('data-translate-title');
+        element.title = t(key);
+    });
+    
+    // Update dynamic content on map page
+    if (window.location.pathname.includes('map.html')) {
+        // Update horoscope info if it exists
+        var horoscopeInfo = document.getElementById('horoscopeInfo');
+        if (horoscopeInfo && horoscopeInfo.innerHTML.trim() !== '') {
+            displayHoroscopeInfo();
+        }
+        
+        // Update data summary if it exists
+        var dataGrid = document.getElementById('dataGrid');
+        if (dataGrid && dataGrid.children.length > 0) {
+            updateDataSummary();
+        }
+        
+        // Update planet names in legend
+        document.querySelectorAll('.planet-name').forEach(function(element) {
+            var planetName = element.textContent;
+            // Find the planet name in both English and Turkish translations
+            var planets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'North Node', 'Chiron', 'Lilith', 'Part of Fortune'];
+            for (var i = 0; i < planets.length; i++) {
+                var englishName = translations['en'][planets[i]];
+                var turkishName = translations['tr'][planets[i]];
+                
+                // Check if current text matches either English or Turkish version
+                if (planetName === englishName || planetName === turkishName) {
+                    element.textContent = t(planets[i]);
+                    break;
+                }
+            }
+        });
+    }
+}
+
+// Initialize language on page load
+function initializeLanguage() {
+    // Check URL parameters first (for map.html)
+    var urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('lang') && translations[urlParams.get('lang')]) {
+        currentLang = urlParams.get('lang');
+        localStorage.setItem('preferred_language', currentLang);
+    }
+    // Then check for saved language preference
+    else {
+        var savedLang = localStorage.getItem('preferred_language');
+        if (savedLang && translations[savedLang]) {
+            currentLang = savedLang;
+        }
+    }
+    
+    // Setup language toggle button
+    var langBtn = document.getElementById('langToggle');
+    if (langBtn) {
+        var flagImg = langBtn.querySelector('.flag-icon');
+        if (flagImg) {
+            flagImg.src = currentLang === 'en' ? 'https://flagcdn.com/20x15/tr.png' : 'https://flagcdn.com/20x15/us.png';
+            flagImg.alt = currentLang === 'en' ? 'TR' : 'EN';
+        }
+        langBtn.setAttribute('data-lang', currentLang === 'en' ? 'tr' : 'en');
+        
+        langBtn.addEventListener('click', function() {
+            var targetLang = this.getAttribute('data-lang');
+            switchLanguage(targetLang);
+        });
+    }
+    
+    // Update page language
+    updatePageLanguage();
+}
 

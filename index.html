@@ -118,8 +118,13 @@
                 <span class="brand-text">LocationalAstro</span>
             </div>
             <div class="nav-links">
-                <a href="#birth-form" class="nav-link active">Create Map</a>
-                <a href="#about" class="nav-link">About</a>
+                <div class="language-switcher">
+                    <button id="langToggle" class="lang-btn" data-lang="en">
+                        <img src="https://flagcdn.com/20x15/us.png" alt="EN" class="flag-icon">
+                    </button>
+                </div>
+                <a href="#birth-form" class="nav-link active" data-translate="nav-create">Create Map</a>
+                <a href="#about" class="nav-link" data-translate="nav-about">About</a>
             </div>
         </div>
     </nav>
@@ -127,9 +132,9 @@
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
-            <h1 class="hero-title">Discover Your Perfect Places</h1>
-            <p class="hero-subtitle">Create personalized astrology maps showing where planetary energies influence your life. Enter your birth details below to explore cosmic influences worldwide.</p>
-            <button class="cta-button" onclick="document.getElementById('birth-form').scrollIntoView({behavior: 'smooth'})">Create Your Map</button>
+            <h1 class="hero-title" data-translate="hero-title">Discover Your Perfect Places</h1>
+            <p class="hero-subtitle" data-translate="hero-subtitle">Create personalized astrology maps showing where planetary energies influence your life. Enter your birth details below to explore cosmic influences worldwide.</p>
+            <button class="cta-button" data-translate="create-map-btn" onclick="document.getElementById('birth-form').scrollIntoView({behavior: 'smooth'})">Create Your Map</button>
         </div>
         <div class="hero-visual">
             <div class="planet-orbit">
@@ -167,34 +172,34 @@
         
         <div class="container">
             <div class="section-header">
-                <h2>Birth Information</h2>
-                <p>Enter your birth details to generate your personalized astrocartography map</p>
+                <h2 data-translate="birth-info-title">Birth Information</h2>
+                <p data-translate="birth-info-desc">Enter your birth details to generate your personalized astrocartography map</p>
             </div>
 
             <div class="form-interface">
                 <div class="form-card">
                     <div class="form-section">
-                        <h3>📅 Birth Details</h3>
+                        <h3 data-translate="birth-details">📅 Birth Details</h3>
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="birthDate">Birth Date</label>
+                                <label for="birthDate" data-translate="birth-date">Birth Date</label>
                                 <input type="date" id="birthDate" value="1986-07-31" required>
                             </div>
                             <div class="form-group">
-                                <label for="birthTime">Birth Time</label>
+                                <label for="birthTime" data-translate="birth-time">Birth Time</label>
                                 <input type="time" id="birthTime" value="13:30" step="1" required>
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label for="birthLocation">📍 Birth Location</label>
+                            <label for="birthLocation" data-translate="birth-location">📍 Birth Location</label>
                             <div id="locationGeocoderContainer"></div>
                             <input type="text" id="birthLocation" value="Istanbul, Istanbul, Turkey" style="display: none;">
                         </div>
 
                         <div class="form-group coordinates-group" id="coordsGroup" style="display: block;">
-                            <label>🌐 Coordinates (auto-detected)</label>
+                            <label data-translate="coordinates">🌐 Coordinates (auto-detected)</label>
                             <div class="coordinates-input">
                                 <input type="number" id="birthLat" step="any" placeholder="Latitude" value="41.0082" readonly>
                                 <input type="number" id="birthLon" step="any" placeholder="Longitude" value="28.9784" readonly>
@@ -202,25 +207,25 @@
                         </div>
 
                         <div class="form-group" id="timezoneGroup" style="display: block;">
-                            <label for="tzDisplay">🌍 Timezone</label>
+                            <label for="tzDisplay" data-translate="timezone">🌍 Timezone</label>
                             <input type="text" id="tzDisplay" value="Turkey Time (UTC+3)" readonly disabled style="cursor: not-allowed; opacity: 0.7;">
                             <input type="hidden" id="tzOffset" value="3">
                         </div>
 
                         <div class="form-group" style="display: none;">
-                            <label for="coordinateSystem">🗺️ Coordinate System</label>
+                            <label for="coordinateSystem" data-translate="coordinate-system">🗺️ Coordinate System</label>
                             <select id="coordinateSystem">
-                                <option value="mundo" selected>Mundo (Local Space)</option>
-                                <option value="zodio">Zodio (Alternative)</option>
+                                <option value="mundo" selected data-translate="mundo">Mundo (Local Space)</option>
+                                <option value="zodio" data-translate="zodio">Zodio (Alternative)</option>
                             </select>
                         </div>
 
-                        <button id="generateBtn" class="cta-button" type="button">
+                        <button id="generateBtn" class="cta-button" type="button" data-translate="generate-map">
                             🌟 Generate Your Map
                         </button>
                         
                         <div class="form-actions">
-                            <button id="shareBtn" type="button" class="share-button">
+                            <button id="shareBtn" type="button" class="share-button" data-translate="share-config">
                                 📤 Share Configuration
                             </button>
                         </div>
@@ -234,31 +239,31 @@
     <section id="about" class="about-section">
         <div class="container">
             <div class="about-content">
-                <h2>What is Location Astrology?</h2>
+                <h2 data-translate="about-title">What is Location Astrology?</h2>
                 <div class="about-grid">
                     <div class="about-card">
                         <div class="card-decoration">
                             <span class="floating-icon">🌌</span>
                         </div>
                         <div class="card-icon">🌍</div>
-                        <h3>Location-Based Astrology</h3>
-                        <p>Discover how different locations around the world can influence your life based on your birth chart.</p>
+                        <h3 data-translate="location-astro-title">Location-Based Astrology</h3>
+                        <p data-translate="location-astro-desc">Discover how different locations around the world can influence your life based on your birth chart.</p>
                     </div>
                     <div class="about-card">
                         <div class="card-decoration">
                             <span class="floating-icon">✨</span>
                         </div>
                         <div class="card-icon">✨</div>
-                        <h3>Planetary Influences</h3>
-                        <p>Each planetary line represents different energies and life themes activated in specific geographic regions.</p>
+                        <h3 data-translate="planetary-title">Planetary Influences</h3>
+                        <p data-translate="planetary-desc">Each planetary line represents different energies and life themes activated in specific geographic regions.</p>
                     </div>
                     <div class="about-card">
                         <div class="card-decoration">
                             <span class="floating-icon">🌟</span>
                         </div>
                         <div class="card-icon">🧭</div>
-                        <h3>Personal Growth</h3>
-                            <p>
+                        <h3 data-translate="growth-title">Personal Growth</h3>
+                            <p data-translate="growth-desc">
                                 Use location astrology to make informed decisions about travel, relocation, and personal development.
                             </p>
                     </div>
@@ -277,8 +282,8 @@
                     <span class="brand-text">LocationalAstro</span>
                 </div>
                 <div class="footer-text">
-                    <p>Amateur location astrology mapping tool for cosmic exploration.</p>
-                    <p class="copyright">&copy; 2026 LocationalAstro. Crafted with cosmic energy.</p>
+                    <p data-translate="footer-desc">Amateur location astrology mapping tool for cosmic exploration.</p>
+                    <p class="copyright" data-translate="footer-copy">&copy; 2026 LocationalAstro. Crafted with cosmic energy.</p>
                 </div>
             </div>
         </div>

@@ -53,6 +53,11 @@
                     </div>
                 </div>
                 <button id="saveMapBtn" class="save-icon-btn" title="Save map as image" style="display: none;">💾</button>
+                <div class="language-switcher">
+                    <button id="langToggle" class="lang-btn" data-lang="en">
+                        <img src="https://flagcdn.com/20x15/us.png" alt="EN" class="flag-icon">
+                    </button>
+                </div>
                 <button id="newMapBtn" class="nav-link-button" title="Create new map">🆕</button>
             </div>
         </div>
@@ -71,10 +76,10 @@
                     </div>
                     <div class="legend-panel" id="legendPanel">
                         <div class="legend-grid">
-                            <div class="line-type" title="Ascendant line - Where planets are rising on the eastern horizon. Represents new beginnings, identity, and how you appear to others when this planet's energy is emphasized."><strong>AC</strong><span>Rising line</span></div>
-                            <div class="line-type" title="Descendant line - Where planets are setting on the western horizon. Represents partnerships, relationships, and how others perceive you when this planet's energy is emphasized."><strong>DC</strong><span>Setting line</span></div>
-                            <div class="line-type" title="Midheaven line - Where planets are at their highest point in the sky. Represents career, reputation, public image, and life direction when this planet's energy is emphasized."><strong>MC</strong><span>Overhead line</span></div>
-                            <div class="line-type" title="Imum Coeli line - Where planets are at their lowest point in the sky. Represents home, family, roots, and your private/inner world when this planet's energy is emphasized."><strong>IC</strong><span>Underfoot line</span></div>
+                            <div class="line-type" data-translate-title="ac-tooltip"><strong>AC</strong><span data-translate="rising-line">Rising line</span></div>
+                            <div class="line-type" data-translate-title="dc-tooltip"><strong>DC</strong><span data-translate="setting-line">Setting line</span></div>
+                            <div class="line-type" data-translate-title="mc-tooltip"><strong>MC</strong><span data-translate="overhead-line">Overhead line</span></div>
+                            <div class="line-type" data-translate-title="ic-tooltip"><strong>IC</strong><span data-translate="underfoot-line">Underfoot line</span></div>
                         </div>
                         <div class="planet-list" id="planetList"></div>
                     </div>
