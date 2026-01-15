@@ -48,6 +48,48 @@ A comprehensive interactive web application that generates professional astrocar
 - **Keyboard shortcuts** (Enter key for geocoding)
 
 ## 🛠️ Tech Stack
+
+- **Frontend**: HTML5, CSS3, Vanilla JavaScript
+- **Mapping**: Leaflet.js for interactive world maps
+- **Geocoding**: Nominatim geocoding service
+- **Styling**: Custom CSS with glassmorphism effects
+- **Responsive**: Mobile-first design approach
+
+## 🚀 Local Development
+
+To run this project locally and avoid CORS issues:
+
+### Option 1: Use the provided batch file (Windows)
+```bash
+# Double-click or run in terminal
+start-server.bat
+```
+
+### Option 2: Python HTTP Server
+```bash
+# Navigate to project directory
+cd locationalastro
+
+# Python 3.x
+python -m http.server 8000
+
+# Or Python 2.x
+python -m SimpleHTTPServer 8000
+```
+
+### Option 3: Node.js HTTP Server
+```bash
+# Install http-server globally
+npm install -g http-server
+
+# Navigate to project directory and serve
+cd locationalastro
+http-server -p 8000
+```
+
+Then open http://localhost:8000 in your browser.
+
+## 🛠️ Tech Stack
 - **Frontend**: Pure HTML5, CSS3, JavaScript (ES6+) 
 - **Mapping**: Leaflet.js with OpenStreetMap tiles
 - **Geocoding**: OpenStreetMap Nominatim API (free, no API key required)

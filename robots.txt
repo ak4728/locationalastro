@@ -7,5 +7,13 @@ Sitemap: https://locationalastro.com/sitemap.xml
 # Crawl delay (optional)
 Crawl-delay: 1
 
+# Allow important pages
+Allow: /locational-astrology.html
+Allow: /map.html
+Allow: /index.html
+
 # Disallow certain files/folders if needed
 Disallow: /LOGO-SPECS.md
+Disallow: /language-system-info.js
+Disallow: /compress_images.py
+Disallow: /start-server.bat

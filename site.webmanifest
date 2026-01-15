@@ -1,7 +1,7 @@
 {
-  "name": "LocationalAstro",
+  "name": "LocationalAstro - Locational Astrology Maps",
   "short_name": "LocationalAstro",
-  "description": "Free astrocartography tool for creating personalized location astrology maps",
+  "description": "Learn about locational astrology and create personalized astrocartography maps to discover your perfect places worldwide",
   "icons": [
     {
       "src": "images/favicon-16x16.png",

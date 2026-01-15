@@ -128,7 +128,7 @@
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "LocationalAstro",
-        "description": "Amateur location astrology mapping tool for creating personalized astrocartography maps",
+        "description": "Learn about locational astrology and create personalized astrocartography maps to discover your perfect places worldwide",
         "url": "https://locationalastro.com",
         "applicationCategory": "LifestyleApplication",
         "operatingSystem": "Web",
@@ -142,8 +142,20 @@
             "name": "LocationalAstro",
             "url": "https://locationalastro.com"
         },
-        "keywords": "astrocartography, location astrology, birth chart, planetary lines, astrology map, cosmic influences, relocation astrology",
-        "screenshot": "https://locationalastro.com/images/logo-large.jpg"
+        "keywords": "locational astrology, astrocartography, location astrology, birth chart, planetary lines, astrology map, cosmic influences, relocation astrology, astrocartography education",
+        "screenshot": "https://locationalastro.com/images/logo-large.jpg",
+        "mainEntityOfPage": [
+            {
+                "@type": "WebPage",
+                "@id": "https://locationalastro.com/",
+                "name": "Home - Create Your Map"
+            },
+            {
+                "@type": "WebPage", 
+                "@id": "https://locationalastro.com/locational-astrology.html",
+                "name": "Learn About Locational Astrology"
+            }
+        ]
     }
     </script>
 </head>
@@ -152,9 +164,11 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
-                <img src="images/logo-small.png" alt="LocationalAstro" class="logo-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
-                <span class="logo-fallback" style="display:none">✨</span>
-                <span class="brand-text">LocationalAstro</span>
+                <a href="index.html" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
+                    <img src="images/logo-small.png" alt="LocationalAstro" class="logo-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
+                    <span class="logo-fallback" style="display:none">✨</span>
+                    <span class="brand-text">LocationalAstro</span>
+                </a>
             </div>
             <div class="nav-links">
                 <div class="language-switcher">
@@ -163,6 +177,7 @@
                     </button>
                 </div>
                 <a href="#birth-form" class="nav-link active" data-translate="nav-create">Create Map</a>
+                <a href="locational-astrology.html" class="nav-link" data-translate="nav-learn">Learn</a>
                 <a href="#about" class="nav-link" data-translate="nav-about">About</a>
             </div>
         </div>

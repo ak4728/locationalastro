@@ -6,23 +6,30 @@
     
     <url>
         <loc>https://locationalastro.com/</loc>
-        <lastmod>2026-01-14</lastmod>
+        <lastmod>2026-01-15</lastmod>
         <changefreq>monthly</changefreq>
         <priority>1.0</priority>
     </url>
     
     <url>
-        <loc>https://locationalastro.com/#about</loc>
-        <lastmod>2026-01-14</lastmod>
+        <loc>https://locationalastro.com/locational-astrology.html</loc>
+        <lastmod>2026-01-15</lastmod>
         <changefreq>monthly</changefreq>
+        <priority>0.9</priority>
+    </url>
+    
+    <url>
+        <loc>https://locationalastro.com/map.html</loc>
+        <lastmod>2026-01-15</lastmod>
+        <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
     
     <url>
-        <loc>https://locationalastro.com/#map-section</loc>
-        <lastmod>2026-01-14</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.9</priority>
+        <loc>https://locationalastro.com/#about</loc>
+        <lastmod>2026-01-15</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
     </url>
     
 </urlset>

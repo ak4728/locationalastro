@@ -1,8 +1,8 @@
 
 
-// Only initialize map if map container exists AND map not already initialized
+// Only initialize map if map container exists AND map not already initialized AND Leaflet is available
 var map;
-if (document.getElementById('map') && !window.map) {
+if (typeof L !== 'undefined' && document.getElementById('map') && !window.map) {
     map = L.map('map', {
         center: [20, 0],
         zoom: 2,
@@ -27,14 +27,24 @@ if (document.getElementById('map') && !window.map) {
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize depending on which page we're on
     if (window.location.pathname.includes('map.html')) {
-        initializeMapPage();
+        // Only initialize map page if Leaflet is available
+        if (typeof L !== 'undefined') {
+            initializeMapPage();
+        } else {
+            console.warn('Leaflet library not loaded. Map functionality disabled.');
+        }
     } else {
         
         // Prevent multiple initializations
         if (!window.geocoderInitialized) {
             window.geocoderInitialized = true;
-            // Wait a bit to ensure DOM is fully loaded
-            setTimeout(initializeGeocoderInput, 100);
+            // Wait a bit to ensure DOM is fully loaded, and only if Leaflet is available
+            if (typeof L !== 'undefined') {
+                setTimeout(initializeGeocoderInput, 100);
+            } else {
+                // Initialize language without geocoder
+                initializeLanguage();
+            }
         }
     }
     
@@ -101,12 +111,15 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Initialize location geocoder control
-var geocoder = L.Control.Geocoder.nominatim({
-    geocodingQueryParams: {
-        limit: 5,
-        'accept-language': 'en'
-    }
-});
+var geocoder;
+if (typeof L !== 'undefined' && L.Control && L.Control.Geocoder) {
+    geocoder = L.Control.Geocoder.nominatim({
+        geocodingQueryParams: {
+            limit: 5,
+            'accept-language': 'en'
+        }
+    });
+}
 
 // Function to add line type labels
 function addLineTypeLabel(line, lineType, planetName) {
@@ -538,6 +551,14 @@ function initializeLegendToggle() {
 }
 
 function initializeGeocoderInput() {
+    // Check if Leaflet is available
+    if (typeof L === 'undefined' || !L.Control || !L.Control.Geocoder) {
+        console.warn('Leaflet geocoder not available');
+        // Initialize language system anyway
+        initializeLanguage();
+        return;
+    }
+    
     var container = document.getElementById('locationGeocoderContainer');
     if (container && container.children.length === 0) { // Only initialize if container is empty
         // Create a proper geocoder input field
@@ -2820,7 +2841,94 @@ var translations = {
         "sagittarius-traits": "Adventurous, philosophical, optimistic. Loves travel, learning, and exploring new horizons.",
         "capricorn-traits": "Ambitious, disciplined, practical. Goal-oriented and values achievement and responsibility.",
         "aquarius-traits": "Independent, innovative, humanitarian. Forward-thinking and values freedom and originality.",
-        "pisces-traits": "Compassionate, artistic, intuitive. Deeply empathetic with rich imagination and spiritual nature."
+        "pisces-traits": "Compassionate, artistic, intuitive. Deeply empathetic with rich imagination and spiritual nature.",
+        
+        // Locational Astrology Page
+        "nav-home": "Home",
+        "nav-learn": "Learn",
+        "locational-hero-title": "Locational Astrology Maps",
+        "locational-hero-subtitle": "Astrology and cartography combined, explore how different places emphasize different planetary themes.",
+        "locational-hero-description": "Learn how birth data creates a world map of planetary lines. Each line shows where a planet was rising, setting, overhead, or underfoot at the moment you were born. Discover how different places may feel supportive for career goals, relationships, creativity, learning, stability, or personal growth.",
+        "generate-your-map": "Generate Your Map",
+        "learn-how-works": "Learn How It Works",
+        
+        // What is Locational Astrology
+        "what-is-locational-title": "What is Locational Astrology",
+        "what-is-locational-text": "Locational astrology is a way to explore your birth chart through geography. Instead of viewing planets in a single chart wheel, it maps key planetary angles across the world. The idea is simple: the same birth moment can be expressed differently depending on location, because the sky angles shift as you move around the Earth.",
+        "what-is-locational-complement": "This does not replace a natal chart. It complements it by showing where certain themes may feel stronger when you live, work, travel, or spend time in a place.",
+        
+        // Lines Meaning
+        "lines-meaning-title": "What the Lines Mean",
+        "lines-meaning-intro": "Each planetary line represents a location where a planet was on a specific angle at your birth moment.",
+        "ac-line-title": "AC, Rising Line",
+        "ac-line-description": "Where the planet was rising on the eastern horizon. Often connected to identity, visibility, new starts, and personal momentum.",
+        "dc-line-title": "DC, Setting Line", 
+        "dc-line-description": "Where the planet was setting on the western horizon. Often connected to relationships, collaboration, clients, and how you meet others.",
+        "mc-line-title": "MC, Overhead Line",
+        "mc-line-description": "Where the planet was highest in the sky. Often connected to career direction, reputation, leadership, and public roles.",
+        "ic-line-title": "IC, Underfoot Line",
+        "ic-line-description": "Where the planet was beneath the horizon. Often connected to home life, foundations, family patterns, and inner stability.",
+        "lines-note": "Lines are strongest near the line itself, but can still be felt in the surrounding region. Hover any line on the map to see the planet and angle meaning.",
+        
+        // How to Use
+        "how-to-use-title": "How to Use the Map",
+        "step-1-title": "Learn the Basics",
+        "step-1-description": "Understand what locational astrology is and how planetary lines work.",
+        "step-2-title": "Choose Your Goal",
+        "step-2-description": "Start with one goal: career, relationships, home, creativity, or healing.",
+        "step-3-title": "Find Relevant Lines",
+        "step-3-description": "Look for relevant planetary lines near cities or regions you are considering.",
+        "step-4-title": "Compare Locations",
+        "step-4-description": "Compare multiple locations and note which themes repeat.",
+        "step-5-title": "Apply Practically",
+        "step-5-description": "Use the interpretations as prompts, then combine with real-world constraints like jobs, community, climate, and cost.",
+        
+        // Planetary Themes
+        "planetary-themes-title": "Planetary Themes",
+        "sun-theme-title": "Sun",
+        "sun-theme-description": "confidence, purpose, recognition, vitality",
+        "moon-theme-title": "Moon",
+        "moon-theme-description": "emotions, belonging, home, intuition",
+        "mercury-theme-title": "Mercury",
+        "mercury-theme-description": "learning, communication, networking, mobility",
+        "venus-theme-title": "Venus",
+        "venus-theme-description": "love, art, harmony, pleasure, attraction",
+        "mars-theme-title": "Mars",
+        "mars-theme-description": "drive, courage, competition, action",
+        "jupiter-theme-title": "Jupiter",
+        "jupiter-theme-description": "growth, opportunity, education, travel",
+        "saturn-theme-title": "Saturn",
+        "saturn-theme-description": "discipline, responsibility, long-term building",
+        "uranus-theme-title": "Uranus",
+        "uranus-theme-description": "change, freedom, reinvention, surprise",
+        "neptune-theme-title": "Neptune",
+        "neptune-theme-description": "spirituality, imagination, idealism, fog",
+        "pluto-theme-title": "Pluto",
+        "pluto-theme-description": "transformation, intensity, power, deep change",
+        
+        // FAQ
+        "faq-title": "Frequently Asked Questions",
+        "faq-birth-time-question": "Do I need an exact birth time?",
+        "faq-birth-time-answer": "Yes. Birth time affects the angles, which affects where the lines fall on the map. Even small changes can shift lines.",
+        "faq-good-bad-question": "Is a line good or bad?",
+        "faq-good-bad-answer": "A line is an emphasis, not a verdict. It can feel supportive or challenging depending on the planet, the angle, and your goals.",
+        "faq-travel-question": "Can I use this for travel?",
+        "faq-travel-answer": "Yes. Many people use locational astrology as a travel planning lens. Short trips can still feel noticeably different near certain lines.",
+        "faq-distance-question": "How close do I need to be to a line?",
+        "faq-distance-answer": "Closest is strongest, but nearby regions can still echo the theme. Treat it as a gradient, not a hard boundary.",
+        "faq-scientific-question": "Is this scientific?",
+        "faq-scientific-answer": "This is an astrology based tool. Use it as a reflective framework alongside real-world research and decision-making.",
+        
+        // CTA and Footer
+        "cta-title": "Ready to Begin Your Journey?",
+        "cta-description": "Ready to start your locational astrology journey? Head to our main page where you can begin exploring how planetary energies align with your life goals.",
+        "create-your-map": "Create Your Map",
+        "footer-locational-desc": "LocationalAstro provides interactive locational astrology maps using birth date, local time, and birthplace. Explore planetary lines worldwide and hover for interpretations.",
+        "footer-tools": "Tools",
+        "footer-resources": "Resources",
+        "footer-faq": "FAQ",
+        "footer-planet-themes": "Planet Themes",
+        "go-home": "Go to Home"
     },
     tr: {
         // Navigation
@@ -2929,7 +3037,94 @@ var translations = {
         "sagittarius-traits": "Maceracı, felsefi, iyimser. Seyahati, öğrenmeyi ve yeni ufukları keşfetmeyi sever.",
         "capricorn-traits": "Hırslı, disiplinli, pratik. Hedef odaklı, başarıyı ve sorumluluğu değerlendirir.",
         "aquarius-traits": "Bağımsız, yenilikçi, insancıl. İleri görüşlü, özgürlüğü ve özgünlüğü değerlendirir.",
-        "pisces-traits": "Şefkatli, sanatsal, sezgisel. Zengin hayal gücü ve ruhsal doğayla derinden empatik."
+        "pisces-traits": "Şefkatli, sanatsal, sezgisel. Zengin hayal gücü ve ruhsal doğayla derinden empatik.",
+        
+        // Locational Astrology Page
+        "nav-home": "Ana Sayfa",
+        "nav-learn": "Öğren",
+        "locational-hero-title": "Konumsal Astroloji Haritaları",
+        "locational-hero-subtitle": "Astroloji ve kartografya bir araya geldi, farklı yerlerin farklı gezegensel temaları nasıl vurguladığını keşfedin.",
+        "locational-hero-description": "Doğum verilerinin nasıl dünya gezegensel çizgilerin haritasını oluşturduğunu öğrenin. Her çizgi, doğduğunuz anda bir gezegenin nerede doğmakta, batmakta, tepede veya ayak altında olduğunu gösterir. Farklı yerlerin kariyer hedefleri, ilişkiler, yaratıcılık, öğrenme, istikrar veya kişisel gelişim için nasıl destekleyici hissedilebileceğini keşfedin.",
+        "generate-your-map": "Haritanızı Oluşturun",
+        "learn-how-works": "Nasıl Çalıştığını Öğrenin",
+        
+        // What is Locational Astrology
+        "what-is-locational-title": "Konumsal Astroloji Nedir",
+        "what-is-locational-text": "Konumsal astroloji, doğum haritanızı coğrafya yoluyla keşfetmenin bir yoludur. Gezegenleri tek bir harita çarkında görüntülemek yerine, ana gezegensel açıları dünya genelinde haritalar. Fikir basittir: aynı doğum anı konuma bağlı olarak farklı şekilde ifade edilebilir, çünkü Dünya etrafında hareket ettikçe gökyüzü açıları değişir.",
+        "what-is-locational-complement": "Bu bir doğum haritasının yerini almaz. Bir yerde yaşarken, çalışırken, seyahat ederken veya zaman geçirirken belirli temaların nerede daha güçlü hissedilebileceğini göstererek onu tamamlar.",
+        
+        // Lines Meaning
+        "lines-meaning-title": "Çizgiler Ne Anlama Geliyor",
+        "lines-meaning-intro": "Her gezegensel çizgi, doğum anınızda bir gezegenin belirli bir açıda olduğu konumu temsil eder.",
+        "ac-line-title": "AC, Yükselme Çizgisi",
+        "ac-line-description": "Gezegenin doğu ufkunda yükselmekte olduğu yer. Genellikle kimlik, görünürlük, yeni başlangıçlar ve kişisel momentum ile bağlantılıdır.",
+        "dc-line-title": "DC, Batış Çizgisi", 
+        "dc-line-description": "Gezegenin batı ufkunda batmakta olduğu yer. Genellikle ilişkiler, işbirliği, müşteriler ve başkalarıyla nasıl tanıştığınızla bağlantılıdır.",
+        "mc-line-title": "MC, Tepede Çizgisi",
+        "mc-line-description": "Gezegenin gökyüzünde en yüksek noktada olduğu yer. Genellikle kariyer yönü, itibar, liderlik ve kamusal rollerle bağlantılıdır.",
+        "ic-line-title": "IC, Ayak Altı Çizgisi",
+        "ic-line-description": "Gezegenin ufkun altında olduğu yer. Genellikle ev yaşamı, temeller, aile kalıpları ve iç istikrarla bağlantılıdır.",
+        "lines-note": "Çizgiler çizginin kendisine yakın yerlerde en güçlüdür, ancak çevredeki bölgelerde de hala hissedilebilir. Gezegen ve açı anlamını görmek için haritadaki herhangi bir çizginin üzerine gelin.",
+        
+        // How to Use
+        "how-to-use-title": "Haritayı Nasıl Kullanılır",
+        "step-1-title": "Temelleri Öğrenin",
+        "step-1-description": "Konumsal astrolojinin ne olduğunu ve gezegensel çizgilerin nasıl çalıştığını anlayın.",
+        "step-2-title": "Hedefinizi Seçin",
+        "step-2-description": "Tek bir hedefle başlayın: kariyer, ilişkiler, ev, yaratıcılık veya iyileşme.",
+        "step-3-title": "İlgili Çizgileri Bulun",
+        "step-3-description": "Düşündüğünüz şehirler veya bölgeler yakınındaki ilgili gezegensel çizgileri arayın.",
+        "step-4-title": "Konumları Karşılaştırın",
+        "step-4-description": "Birden çok konumu karşılaştırın ve hangi temaların tekrar ettiğini not edin.",
+        "step-5-title": "Pratik Uygulayın",
+        "step-5-description": "Yorumları ipucu olarak kullanın, ardından iş, topluluk, iklim ve maliyet gibi gerçek dünya kısıtlamalarıyla birleştirin.",
+        
+        // Planetary Themes
+        "planetary-themes-title": "Gezegensel Temalar",
+        "sun-theme-title": "Güneş",
+        "sun-theme-description": "güven, amaç, tanınma, canlılık",
+        "moon-theme-title": "Ay",
+        "moon-theme-description": "duygular, aidiyet, ev, sezgi",
+        "mercury-theme-title": "Merkür",
+        "mercury-theme-description": "öğrenme, iletişim, ağ kurma, hareketlilik",
+        "venus-theme-title": "Venüs",
+        "venus-theme-description": "aşk, sanat, uyum, zevk, çekicilik",
+        "mars-theme-title": "Mars",
+        "mars-theme-description": "itici güç, cesaret, rekabet, eylem",
+        "jupiter-theme-title": "Jüpiter",
+        "jupiter-theme-description": "büyüme, fırsat, eğitim, seyahat",
+        "saturn-theme-title": "Satürn",
+        "saturn-theme-description": "disiplin, sorumluluk, uzun vadeli inşa",
+        "uranus-theme-title": "Uranüs",
+        "uranus-theme-description": "değişim, özgürlük, yeniden icat, sürpriz",
+        "neptune-theme-title": "Neptün",
+        "neptune-theme-description": "maneviyat, hayal gücü, idealizm, sis",
+        "pluto-theme-title": "Plüton",
+        "pluto-theme-description": "dönüşüm, yoğunluk, güç, derin değişim",
+        
+        // FAQ
+        "faq-title": "Sık Sorulan Sorular",
+        "faq-birth-time-question": "Tam doğum saatine ihtiyacım var mı?",
+        "faq-birth-time-answer": "Evet. Doğum saati açıları etkiler, bu da çizgilerin haritada nereye düştüğünü etkiler. Küçük değişiklikler bile çizgileri kaydırabilir.",
+        "faq-good-bad-question": "Bir çizgi iyi mi kötü mü?",
+        "faq-good-bad-answer": "Bir çizgi bir vurgu, hüküm değil. Gezegene, açıya ve hedeflerinize bağlı olarak destekleyici veya zorlayıcı hissedilebilir.",
+        "faq-travel-question": "Bunu seyahat için kullanabilir miyim?",
+        "faq-travel-answer": "Evet. Birçok kişi konumsal astrolojiyi seyahat planlama mercegi olarak kullanır. Kısa geziler bile belirli çizgiler yakınında hissedilir derecede farklı olabilir.",
+        "faq-distance-question": "Bir çizgiye ne kadar yakın olmam gerekiyor?",
+        "faq-distance-answer": "En yakın en güçlüdür, ancak yakındaki bölgeler yine de temayı yansıtabilir. Bunu katı bir sınır değil, gradyan olarak düşünün.",
+        "faq-scientific-question": "Bu bilimsel mi?",
+        "faq-scientific-answer": "Bu astroloji tabanlı bir araçtır. Gerçek dünya araştırması ve karar verme süreçleriyle birlikte yansıtıcı bir çerçeve olarak kullanın.",
+        
+        // CTA and Footer
+        "cta-title": "Yolculuğunuza Başlamaya Hazır mısınız?",
+        "cta-description": "Konumsal astroloji yolculuğunuza başlamaya hazır mısınız? Gezegensel enerjilerin yaşam hedeflerinizle nasıl uyumlu olduğunu keşfetmeye başlayabileceğiniz ana sayfamıza gidin.",
+        "create-your-map": "Haritanızı Oluşturun",
+        "footer-locational-desc": "LocationalAstro, doğum tarihi, yerel saat ve doğum yeri kullanarak interaktif konumsal astroloji haritaları sağlar. Dünya çapında gezegensel çizgileri keşfedin ve yorumlar için üzerine gelin.",
+        "footer-tools": "Araçlar",
+        "footer-resources": "Kaynaklar",
+        "footer-faq": "SSS",
+        "footer-planet-themes": "Gezegen Temaları",
+        "go-home": "Ana Sayfaya Git"
     }
 };
 
@@ -2938,7 +3133,12 @@ var currentLang = 'en';
 
 // Function to translate text
 function t(key) {
-    return translations[currentLang][key] || translations['en'][key] || key;
+    if (typeof translations === 'undefined') {
+        return key;
+    }
+    return (translations[currentLang] && translations[currentLang][key]) || 
+           (translations['en'] && translations['en'][key]) || 
+           key;
 }
 
 // Function to switch language
@@ -3016,18 +3216,20 @@ function updatePageLanguage() {
 
 // Initialize language on page load
 function initializeLanguage() {
-    // Check URL parameters first (for map.html)
-    var urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('lang') && translations[urlParams.get('lang')]) {
-        currentLang = urlParams.get('lang');
-        localStorage.setItem('preferred_language', currentLang);
+    // Check if translations object exists
+    if (typeof translations === 'undefined') {
+        console.warn('Translations object not loaded');
+        return;
     }
-    // Then check for saved language preference
-    else {
-        var savedLang = localStorage.getItem('preferred_language');
-        if (savedLang && translations[savedLang]) {
-            currentLang = savedLang;
-        }
+    
+    // Load saved language preference (defaults to 'en' if none saved)
+    var savedLang = localStorage.getItem('preferred_language') || 'en';
+    if (translations[savedLang]) {
+        currentLang = savedLang;
+    } else {
+        // Fallback to English if saved language is invalid
+        currentLang = 'en';
+        localStorage.setItem('preferred_language', 'en');
     }
     
     // Setup language toggle button
