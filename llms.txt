@@ -1,0 +1,78 @@
+# LocationalAstro - Astrocartography Web Application
+
+## Project Overview
+LocationalAstro is a comprehensive interactive web application that generates professional astrocartography maps based on birth data. The application shows curved planetary lines across a world map indicating locations where planets were on specific angles (AC/DC/MC/IC) at the time of birth.
+
+## Core Functionality
+- **Interactive Astrocartography Maps**: Generate personalized astrocartography maps using birth data (date, time, location)
+- **Planetary Line Calculations**: Display curved AC/DC lines and straight MC/IC longitude lines for 13 celestial points
+- **City Database**: Shows 100+ major world cities as interactive points with hover tooltips
+- **Multi-language Support**: Full English and Turkish translations with smart language detection
+- **Map Export**: Save astrology maps as PNG images
+- **URL Sharing**: Generate shareable links for astrocartography maps
+
+## Technical Architecture
+- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
+- **Mapping**: Leaflet.js for interactive world map
+- **UI/UX**: Glassmorphism design with responsive breakpoints
+- **Geocoding**: Integrated location search and coordinate conversion
+- **Astronomical Calculations**: Real-time zodiac calculations and planetary position algorithms
+
+## File Structure
+- `index.html` - Landing page with project introduction
+- `map.html` - Interactive astrocartography map generator  
+- `script.js` - Core JavaScript functionality (3000+ lines)
+- `styles.css` - Responsive CSS styling with modern design
+- `images/` - Image assets and icons
+- Configuration files: `browserconfig.xml`, `site.webmanifest`, `robots.txt`, `sitemap.xml`
+
+## Key Features
+### Astronomical Features
+- **13 Celestial Points**: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, North Node, Chiron, Lilith, Part of Fortune
+- **4 Angles Per Planet**: Ascendant (AC), Descendant (DC), Midheaven (MC), Imum Coeli (IC)
+- **52 Total Line Types**: Each with unique colors and astrological interpretations
+- **Zodiac Integration**: Sun/Moon/Rising signs with personality trait descriptions
+
+### User Experience Features
+- **One-click Geocoding**: Enter any city name to get coordinates automatically
+- **Touch-friendly Interface**: Optimized for mobile devices
+- **Keyboard Shortcuts**: Enter key for geocoding functionality
+- **Auto-load from URLs**: Maps load automatically from shared parameters
+- **Professional Interpretations**: 52 unique interpretations for all planet-angle combinations
+
+### Technical Features
+- **Responsive Design**: Breakpoints for desktop, tablet, and mobile
+- **Modern Web Standards**: Progressive web app capabilities
+- **Cross-browser Compatibility**: Works across all modern browsers
+- **Performance Optimized**: Efficient rendering of complex planetary calculations
+
+## Target Audience
+- Astrology enthusiasts interested in locational astrology
+- People seeking guidance on relocation decisions
+- Professional astrologers offering astrocartography services
+- Users interested in how geographical locations affect their astrological profile
+
+## Use Cases
+- Personal astrocartography map generation
+- Relocation astrology consultations
+- Travel planning based on astrological influences
+- Educational tool for learning about astrocartography
+- Professional astrology services and readings
+
+## Development Context
+This is a standalone web application focused on making astrocartography accessible to a broader audience through an intuitive, modern interface. The project emphasizes accuracy in astronomical calculations while maintaining ease of use for non-expert users.
+
+## Key Technologies Used
+- Leaflet.js for interactive mapping
+- Vanilla JavaScript for core functionality
+- CSS Grid and Flexbox for responsive layouts
+- HTML5 semantic elements for accessibility
+- Progressive Web App features for modern web experience
+
+## Unique Selling Points
+- Most comprehensive free astrocartography tool available online
+- Bilingual support (English/Turkish) with smart language detection
+- Professional-grade astronomical calculations
+- Modern, mobile-optimized user interface
+- Detailed astrological interpretations for all planetary lines
+- Export and sharing capabilities for generated maps
