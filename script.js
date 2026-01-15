@@ -1275,6 +1275,8 @@ function generateMap() {
     var lat = parseFloat(document.getElementById('birthLat').value);
     var lon = parseFloat(document.getElementById('birthLon').value);
     var tzOffset = parseFloat(document.getElementById('tzOffset').value);
+    var location = document.getElementById('birthLocation').value;
+    var coordinateSystem = document.getElementById('coordinateSystem').value;
 
     if (!dateStr || !timeStr) {
         alert('Please fill in birth date and time');
@@ -1283,7 +1285,6 @@ function generateMap() {
 
     if (isNaN(lat) || isNaN(lon)) {
         alert('Location coordinates are missing. Please enter a valid location and wait for it to be resolved.');
-        // Try geocoding the current location if coordinates are missing
         geocodeLocation();
         return;
     }
@@ -1293,20 +1294,20 @@ function generateMap() {
         return;
     }
 
-    for (var i = 0; i < currentLines.length; i++) {
-        map.removeLayer(currentLines[i]);
-    }
-    currentLines = [];
-
-    var dateParts = dateStr.split('-');
-    var year = parseInt(dateParts[0]);
-    var month = parseInt(dateParts[1]);
-    var day = parseInt(dateParts[2]);
+    // Create URL parameters for map page
+    const params = new URLSearchParams({
+        date: dateStr,
+        time: timeStr,
+        location: encodeURIComponent(location),
+        lat: lat.toString(),
+        lon: lon.toString(),
+        tz: tzOffset.toString(),
+        system: coordinateSystem
+    });
     
-    var timeParts = timeStr.split(':');
-    var hour = parseInt(timeParts[0]);
-    var minute = parseInt(timeParts[1]);
-    var second = timeParts[2] ? parseInt(timeParts[2]) : 0;
+    // Redirect to map page with parameters
+    window.location.href = 'map.html?' + params.toString();
+}
 
     var birthDate = new Date(Date.UTC(year, month - 1, day, hour - tzOffset, minute, second));
     

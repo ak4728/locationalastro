@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Astrology and Cartography Map, Planetary Lines by Birth Time</title>
-    <meta name="description" content="Interactive astrology map that draws planetary lines worldwide using your birth date, local time, and location. Explore rising, setting, overhead, and underfoot lines and hover for interpretations.">
+    <title>Planetary Line Map | LocationalAstro - Discover Your Perfect Places</title>
+    <meta name="description" content="Create your personalized astrology map by entering your birth details. Discover how planetary energies influence different locations worldwide with our amateur astrology tool.">
     <meta name="keywords" content="astrocartography, location astrology, birth chart, planetary lines, astrology map, cosmic influences, relocation astrology">
     <meta name="author" content="LocationalAstro">
     <meta name="robots" content="index, follow">
@@ -118,7 +118,7 @@
                 <span class="brand-text">LocationalAstro</span>
             </div>
             <div class="nav-links">
-                <a href="#map-section" class="nav-link active">Create Map</a>
+                <a href="#birth-form" class="nav-link active">Create Map</a>
                 <a href="#about" class="nav-link">About</a>
             </div>
         </div>
@@ -127,9 +127,9 @@
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
-            <h1 class="hero-title">Amateur Location Astrology Maps</h1>
-            <p class="hero-subtitle">Explore how astrology and cartography connect, by mapping planetary angles worldwide. Discover cosmic influences across different locations for personal growth, career, relationships, and spiritual development.</p>
-            <button class="cta-button" onclick="document.getElementById('map-section').scrollIntoView({behavior: 'smooth'})">Create Your Map</button>
+            <h1 class="hero-title">Discover Your Perfect Places</h1>
+            <p class="hero-subtitle">Create personalized astrology maps showing where planetary energies influence your life. Enter your birth details below to explore cosmic influences worldwide.</p>
+            <button class="cta-button" onclick="document.getElementById('birth-form').scrollIntoView({behavior: 'smooth'})">Create Your Map</button>
         </div>
         <div class="hero-visual">
             <div class="planet-orbit">
@@ -148,8 +148,90 @@
         </div>
     </section>
 
-    <!-- Main Map Section -->
-    <section id="map-section" class="map-section">
+    <!-- Birth Form Section -->
+    <section id="birth-form" class="birth-form-section">
+        <!-- Animated Background Elements -->
+        <div class="cosmic-bg">
+            <div class="constellation constellation-1">
+                <div class="constellation-star"></div>
+                <div class="constellation-star"></div>
+                <div class="constellation-star"></div>
+            </div>
+            <div class="constellation constellation-2">
+                <div class="constellation-star"></div>
+                <div class="constellation-star"></div>
+                <div class="constellation-star"></div>
+                <div class="constellation-star"></div>
+            </div>
+        </div>
+        
+        <div class="container">
+            <div class="section-header">
+                <h2>Birth Information</h2>
+                <p>Enter your birth details to generate your personalized astrocartography map</p>
+            </div>
+
+            <div class="form-interface">
+                <div class="form-card">
+                    <div class="form-section">
+                        <h3>📅 Birth Details</h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="birthDate">Birth Date</label>
+                                <input type="date" id="birthDate" value="1986-07-31" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="birthTime">Birth Time</label>
+                                <input type="time" id="birthTime" value="13:30" step="1" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="birthLocation">📍 Birth Location</label>
+                            <div id="locationGeocoderContainer"></div>
+                            <input type="text" id="birthLocation" value="Istanbul, Turkey" style="display: none;">
+                        </div>
+
+                        <div class="form-group coordinates-group" id="coordsGroup" style="display: none;">
+                            <label>Coordinates (auto-detected)</label>
+                            <div class="coordinates-input">
+                                <input type="number" id="birthLat" step="any" placeholder="Latitude" readonly>
+                                <input type="number" id="birthLon" step="any" placeholder="Longitude" readonly>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="timezoneGroup" style="display: none;">
+                            <label for="tzDisplay">🌍 Timezone</label>
+                            <input type="text" id="tzDisplay" readonly>
+                            <input type="hidden" id="tzOffset">
+                            <label>
+                                <input type="checkbox" id="lockTimezone"> Lock timezone
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="coordinateSystem">🗺️ Coordinate System</label>
+                            <select id="coordinateSystem">
+                                <option value="geodetic">Geodetic (Standard)</option>
+                                <option value="zodio">Zodio (Alternative)</option>
+                            </select>
+                        </div>
+
+                        <button id="generateBtn" class="cta-button" type="button">
+                            🌟 Generate Your Map
+                        </button>
+                        
+                        <div class="form-actions">
+                            <button id="shareBtn" type="button" class="share-button">
+                                📤 Share Configuration
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
         <!-- Animated Background Elements -->
         <div class="cosmic-bg">
             <div class="constellation constellation-1">

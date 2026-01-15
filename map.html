@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Astrology Map | LocationalAstro</title>
+    <meta name="description" content="View your personalized astrology map with planetary lines showing cosmic influences worldwide.">
+    <meta name="keywords" content="astrocartography, location astrology, birth chart, planetary lines, astrology map">
+    <meta name="author" content="LocationalAstro">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Favicon and Logo Meta Tags -->
+    <link rel="icon" type="image/x-icon" href="images/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+    <meta name="msapplication-TileColor" content="#6366f1">
+    <meta name="theme-color" content="#0a0a1a">
+    
+    <!-- Fonts and Stylesheets -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <link rel="stylesheet" href="styles.css" />
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-652WT4X6XV"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-652WT4X6XV');
+    </script>
+</head>
+<body class="map-page">
+    <!-- Navigation Header -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <img src="images/logo-small.png" alt="LocationalAstro" class="logo-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
+                <span class="logo-fallback" style="display:none">✨</span>
+                <span class="brand-text">LocationalAstro</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">🏠 Home</a>
+                <button id="newMapBtn" class="nav-link-button">🆕 New Map</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Map Display Section -->
+    <section class="map-display-section">
+        <div class="container-full">
+            <div class="map-header">
+                <div class="map-title">
+                    <h1>Your Location Astrology Map</h1>
+                    <p id="mapDescription">Planetary influences across the globe</p>
+                </div>
+                <div class="map-controls">
+                    <button id="shareMapBtn" class="control-button">
+                        🔗 Share Map
+                    </button>
+                    <button id="editDataBtn" class="control-button">
+                        ✏️ Edit Data
+                    </button>
+                </div>
+            </div>
+            
+            <div class="map-stage" id="map-stage">
+                <div id="map" class="astro-map"></div>
+
+                <button id="legendToggle" class="legend-toggle" type="button">
+                    Legend
+                </button>
+
+                <aside class="legend-panel" id="legendPanel" aria-hidden="true">
+                    <h3>Planetary Lines</h3>
+                    <div class="legend-grid">
+                        <div class="line-type"><strong>AC</strong><span>Rising line</span></div>
+                        <div class="line-type"><strong>DC</strong><span>Setting line</span></div>
+                        <div class="line-type"><strong>MC</strong><span>Overhead line</span></div>
+                        <div class="line-type"><strong>IC</strong><span>Underfoot line</span></div>
+                    </div>
+                    <div class="planet-list" id="planetList"></div>
+                </aside>
+            </div>
+
+            <!-- Birth Data Summary -->
+            <div class="data-summary" id="dataSummary">
+                <div class="data-card">
+                    <h3>📊 Birth Data</h3>
+                    <div class="data-grid" id="dataGrid">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Hidden form for data persistence -->
+    <div style="display: none;">
+        <input type="date" id="birthDate">
+        <input type="time" id="birthTime">
+        <input type="text" id="birthLocation">
+        <input type="number" id="birthLat">
+        <input type="number" id="birthLon">
+        <input type="text" id="tzDisplay">
+        <input type="hidden" id="tzOffset">
+        <select id="coordinateSystem">
+            <option value="geodetic">Geodetic (Standard)</option>
+            <option value="zodio">Zodio (Alternative)</option>
+        </select>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script src="script.js"></script>
+    
+    <script>
+        // Initialize map page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMapPage();
+        });
+        
+        function initializeMapPage() {
+            // Load data from URL parameters or localStorage
+            loadMapData();
+            
+            // Generate the map immediately
+            setTimeout(() => {
+                generateMap();
+            }, 500);
+            
+            // Setup navigation
+            document.getElementById('newMapBtn')?.addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+            
+            document.getElementById('editDataBtn')?.addEventListener('click', () => {
+                const params = new URLSearchParams(window.location.search);
+                window.location.href = 'index.html?' + params.toString();
+            });
+            
+            document.getElementById('shareMapBtn')?.addEventListener('click', () => {
+                shareMap();
+            });
+        }
+        
+        function loadMapData() {
+            const params = new URLSearchParams(window.location.search);
+            
+            // Load from URL parameters
+            if (params.has('date')) {
+                document.getElementById('birthDate').value = params.get('date');
+                document.getElementById('birthTime').value = params.get('time');
+                document.getElementById('birthLocation').value = decodeURIComponent(params.get('location'));
+                document.getElementById('birthLat').value = params.get('lat');
+                document.getElementById('birthLon').value = params.get('lon');
+                document.getElementById('tzOffset').value = params.get('tz');
+                document.getElementById('coordinateSystem').value = params.get('system') || 'geodetic';
+                
+                // Update page description
+                const location = decodeURIComponent(params.get('location'));
+                const date = params.get('date');
+                document.getElementById('mapDescription').textContent = `Born ${date} in ${location}`;
+                
+                // Update data summary
+                updateDataSummary();
+            }
+        }
+        
+        function updateDataSummary() {
+            const dataGrid = document.getElementById('dataGrid');
+            const data = {
+                'Date': document.getElementById('birthDate').value,
+                'Time': document.getElementById('birthTime').value,
+                'Location': document.getElementById('birthLocation').value,
+                'Coordinates': `${document.getElementById('birthLat').value}, ${document.getElementById('birthLon').value}`,
+                'System': document.getElementById('coordinateSystem').value
+            };
+            
+            dataGrid.innerHTML = '';
+            for (const [key, value] of Object.entries(data)) {
+                const item = document.createElement('div');
+                item.className = 'data-item';
+                item.innerHTML = `<strong>${key}:</strong> ${value}`;
+                dataGrid.appendChild(item);
+            }
+        }
+    </script>
+</body>
+</html>
