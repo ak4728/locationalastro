@@ -98,31 +98,12 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeLegendToggle() {
+    const legendSlider = document.getElementById('legendSlider');
     const legendToggle = document.getElementById('legendToggle');
-    const technicalToggle = document.getElementById('toggleTechnical');
-    const legend = document.getElementById('legend');
     
-    // Handle legend toggle from the new button
-    if (legendToggle && legend) {
+    if (legendToggle && legendSlider) {
         legendToggle.addEventListener('click', function() {
-            const isVisible = legend.style.display !== 'none';
-            legend.style.display = isVisible ? 'none' : 'block';
-            
-            // Update button text
-            const icon = this.querySelector('span');
-            if (icon) {
-                icon.textContent = isVisible ? '📖' : '📜';
-            }
-        });
-    }
-    
-    // Handle technical details toggle (keep existing functionality)
-    if (technicalToggle && legend) {
-        technicalToggle.addEventListener('click', function() {
-            const isVisible = legend.style.display !== 'none';
-            legend.style.display = isVisible ? 'none' : 'block';
-            
-            this.textContent = isVisible ? '🔭 Show Technical Details' : '🔭 Hide Technical Details';
+            legendSlider.classList.toggle('open');
         });
     }
 }

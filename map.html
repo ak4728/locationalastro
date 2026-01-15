@@ -44,6 +44,11 @@
                 <span class="brand-text">LocationalAstro</span>
             </div>
             <div class="nav-links">
+                <div class="birth-data-inline">
+                    <div class="data-grid" id="dataGrid">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
                 <a href="index.html" class="nav-link">🏠 Home</a>
                 <button id="newMapBtn" class="nav-link-button">🆕 New Map</button>
             </div>
@@ -56,28 +61,20 @@
             <div class="map-stage" id="map-stage">
                 <div id="map" class="astro-map"></div>
 
-                <button id="legendToggle" class="legend-toggle" type="button">
-                    Legend
-                </button>
-
-                <aside class="legend-panel" id="legendPanel" aria-hidden="true">
-                    <h3>Planetary Lines</h3>
-                    <div class="legend-grid">
-                        <div class="line-type"><strong>AC</strong><span>Rising line</span></div>
-                        <div class="line-type"><strong>DC</strong><span>Setting line</span></div>
-                        <div class="line-type"><strong>MC</strong><span>Overhead line</span></div>
-                        <div class="line-type"><strong>IC</strong><span>Underfoot line</span></div>
+                <!-- Sliding Legend Panel -->
+                <div class="legend-slider" id="legendSlider">
+                    <div class="legend-toggle" id="legendToggle">
+                        <span class="arrow-icon">►</span>
                     </div>
-                    <div class="planet-list" id="planetList"></div>
-                </aside>
-            </div>
-
-            <!-- Birth Data Summary -->
-            <div class="data-summary" id="dataSummary">
-                <div class="data-card">
-                    <h3>📊 Birth Data</h3>
-                    <div class="data-grid" id="dataGrid">
-                        <!-- Will be populated by JavaScript -->
+                    <div class="legend-panel" id="legendPanel">
+                        <h3>Planetary Lines</h3>
+                        <div class="legend-grid">
+                            <div class="line-type"><strong>AC</strong><span>Rising line</span></div>
+                            <div class="line-type"><strong>DC</strong><span>Setting line</span></div>
+                            <div class="line-type"><strong>MC</strong><span>Overhead line</span></div>
+                            <div class="line-type"><strong>IC</strong><span>Underfoot line</span></div>
+                        </div>
+                        <div class="planet-list" id="planetList"></div>
                     </div>
                 </div>
             </div>
@@ -145,25 +142,63 @@
             // Initialize legend toggle
             setTimeout(function() {
                 const btn = document.getElementById('legendToggle');
+                const slider = document.getElementById('legendSlider');
                 const panel = document.getElementById('legendPanel');
                 
-                if (btn && panel) {
-                    console.log('Setting up legend toggle');
+                if (btn && slider && panel) {
+                    console.log('Setting up legend slider toggle');
                     
                     btn.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
                         
-                        const isOpen = panel.classList.toggle('open');
+                        // Toggle the slider, not the panel
+                        const isOpen = slider.classList.toggle('open');
                         panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
-                        this.textContent = isOpen ? '✕ Close' : 'Legend';
                         
-                        console.log('Legend toggled:', isOpen);
+                        console.log('Legend slider toggled:', isOpen);
                     });
                 } else {
-                    console.warn('Legend elements not found');
+                    console.warn('Legend elements not found:', {
+                        btn: !!btn,
+                        slider: !!slider,
+                        panel: !!panel
+                    });
                 }
             }, 500);
+            
+            // Force populate legend content for debugging
+            setTimeout(function() {
+                const planetList = document.getElementById('planetList');
+                if (planetList && planetList.children.length === 0) {
+                    console.log('Populating legend manually...');
+                    
+                    const planets = [
+                        { name: 'Sun', color: '#FFD700', symbol: '☉' },
+                        { name: 'Moon', color: '#C0C0C0', symbol: '☽' },
+                        { name: 'Mercury', color: '#87CEEB', symbol: '☿' },
+                        { name: 'Venus', color: '#FF69B4', symbol: '♀' },
+                        { name: 'Mars', color: '#FF4500', symbol: '♂' },
+                        { name: 'Jupiter', color: '#FFA500', symbol: '♃' },
+                        { name: 'Saturn', color: '#8B4513', symbol: '♄' },
+                        { name: 'Uranus', color: '#40E0D0', symbol: '♅' },
+                        { name: 'Neptune', color: '#4169E1', symbol: '♆' },
+                        { name: 'Pluto', color: '#8A2BE2', symbol: '♇' }
+                    ];
+                    
+                    planets.forEach(function(planet) {
+                        const item = document.createElement('div');
+                        item.className = 'planet-item';
+                        item.innerHTML = `
+                            <span class="planet-symbol" style="color: ${planet.color}">${planet.symbol}</span>
+                            <span class="planet-name">${planet.name}</span>
+                        `;
+                        planetList.appendChild(item);
+                    });
+                    
+                    console.log('Legend populated with', planets.length, 'planets');
+                }
+            }, 1500);
         }
         
         function loadMapData() {

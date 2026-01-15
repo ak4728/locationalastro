@@ -942,13 +942,31 @@ body {
 /* About Section */
 .about-section {
     padding: 6rem 0;
-    background: rgba(255, 255, 255, 0.02);
+    position: relative;
+    overflow: hidden;
+    background: url('images/background2.png') center center / cover no-repeat;
+    background-attachment: fixed;
+}
+
+.about-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 10, 26, 0.6);
+    backdrop-filter: blur(1px);
+    pointer-events: none;
+    z-index: 1;
 }
 
 .about-content {
     text-align: center;
     max-width: 1200px;
     margin: 0 auto;
+    position: relative;
+    z-index: 2;
 }
 
 .about-content h2 {
@@ -1683,6 +1701,282 @@ body {
     display: none !important;
 }
 
+/* Sliding Legend Panel */
+.legend-slider {
+    position: fixed !important;
+    left: -300px; /* Hidden by default */
+    top: 80px !important; /* Below navbar */
+    height: calc(100vh - 80px) !important;
+    width: 340px;
+    z-index: 2000; /* Higher than map */
+    transition: left 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.legend-slider.open {
+    left: 0;
+}
+
+/* Legend Toggle Arrow - Always visible on left edge */
+.legend-slider .legend-toggle {
+    position: fixed; /* Changed from absolute to fixed */
+    left: 0; /* Always at left edge of viewport */
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border: none;
+    border-radius: 0 12px 12px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    z-index: 2001;
+}
+
+/* When slider is open, move toggle button with it */
+.legend-slider.open .legend-toggle {
+    left: 340px; /* Move to match slider width (340px) */
+}
+
+.legend-slider .legend-toggle:hover {
+    background: linear-gradient(135deg, var(--secondary-color), var(--accent-color));
+    transform: translateY(-50%) translateX(2px);
+}
+
+.arrow-icon {
+    color: white;
+    font-size: 16px;
+    transition: transform 0.3s ease;
+}
+
+.legend-slider.open .arrow-icon {
+    transform: rotate(180deg);
+}
+
+/* Legend Panel Content in Slider */
+.legend-slider .legend-panel {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    background: rgba(10, 10, 26, 0.98); /* More opaque */
+    backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(255, 255, 255, 0.2); /* More visible border */
+    padding: 35px 25px 25px 25px; /* More top padding */
+    overflow-y: auto;
+    box-shadow: 2px 0 20px rgba(0, 0, 0, 0.7); /* Stronger shadow */
+    top: 0;
+}
+
+.legend-slider .legend-panel h3 {
+    color: var(--logo-light);
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    text-align: center;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 10px;
+}
+
+.legend-slider .legend-grid {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.legend-slider .line-type {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    transition: background 0.3s ease;
+}
+
+.legend-slider .line-type:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.legend-slider .line-type strong {
+    color: #4A90E2; /* Bright blue for visibility */
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.legend-slider .line-type span {
+    color: #ffffff; /* White for clear visibility */
+    font-size: 0.9rem;
+}
+
+/* Mobile responsiveness for slider */
+@media (max-width: 768px) {
+    .legend-slider {
+        left: -250px;
+        width: 280px;
+        top: 70px;
+        height: calc(100vh - 70px);
+    }
+    
+    .legend-slider .legend-toggle {
+        right: -35px;
+        width: 35px;
+        height: 50px;
+    }
+    
+    .arrow-icon {
+        font-size: 14px;
+    }
+    
+    .legend-slider .legend-panel {
+        padding: 20px;
+    }
+}
+
+/* =================================
+   LEGEND PANEL VISIBILITY FIX
+   ================================= */
+
+/* Make legend panel VERY visible when open */
+.legend-slider.open .legend-panel {
+    background: rgba(10, 10, 26, 0.98) !important;
+    border-left: 3px solid var(--primary-color) !important; /* Use theme primary color */
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Make heading VERY visible */
+.legend-slider .legend-panel h3 {
+    color: #ffffff !important;
+    font-size: 1.4rem !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+}
+
+/* Make line types VERY visible */
+.legend-slider .line-type {
+    background: rgba(255, 255, 255, 0.05) !important; /* Subtle theme background */
+    border: 1px solid rgba(255, 255, 255, 0.1) !important; /* Theme border */
+    padding: 10px !important; /* Slightly reduced padding */
+    margin-bottom: 6px !important; /* Reduced margin */
+}
+
+.legend-slider .line-type strong {
+    color: var(--accent-color) !important; /* Use theme accent color */
+    font-size: 1rem !important;
+}
+
+.legend-slider .line-type span {
+    color: var(--text-primary) !important; /* Use theme text color */
+    font-size: 0.9rem !important;
+}
+
+/* Make planet list visible */
+.legend-slider .planet-list {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid var(--primary-color); /* Use theme primary color */
+    height: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+}
+
+.legend-slider .planet-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0px;
+    font-size: 0.8rem;
+    background: rgba(255, 255, 255, 0.05); /* Theme colors instead of bright blue */
+    border-radius: 6px;
+    margin-bottom: 4px; /* Reduced margin */
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle theme border */
+}
+
+.legend-slider .planet-symbol {
+    font-size: 1.5rem;
+    width: 30px;
+    text-align: center;
+}
+
+.legend-slider .planet-name {
+    color: var(--text-primary) !important; /* Use theme text color */
+    font-weight: 500; /* Slightly reduced weight */
+    font-size: 0.9rem; /* Slightly smaller */
+}
+
+/* Debug - add visible background */
+.legend-slider {
+    background: transparent !important; /* Made transparent */
+}
+
+/* Reduce spacing between planet items in legend */
+.legend-slider .planet-item {
+    margin-bottom: 4px !important; /* Reduced from 8px */
+    padding: 6px 10px !important; /* Reduced from 10px */
+}
+
+/* Also reduce spacing in planet-list container */
+.legend-slider .planet-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px; /* Small gap between items */
+}
+
+/* Reduce line-type spacing too if needed */
+.legend-slider .line-type {
+    margin-bottom: 4px !important; /* Reduced gap */
+    padding: 10px 12px !important; /* Smaller padding */
+}
+
+.legend-slider .legend-grid {
+    gap: 6px !important; /* Tighter grid */
+    margin-bottom: 15px !important;
+}
+
+/* Birth data in navbar */
+.birth-data-inline {
+    display: flex;
+    align-items: center;
+    margin-right: 20px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+}
+
+.birth-data-inline .data-grid {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.birth-data-inline .data-item {
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.birth-data-inline .data-item strong {
+    color: var(--logo-light);
+    margin-right: 4px;
+}
+
+/* Mobile adjustments for navbar birth data */
+@media (max-width: 1200px) {
+    .birth-data-inline {
+        display: none; /* Hide on smaller screens to save space */
+    }
+}
+
+@media (max-width: 768px) {
+    .nav-links {
+        display: flex;
+    }
+}
+
 /* =================================
    FIXED LEGEND PANEL
    ================================= */
@@ -1787,10 +2081,10 @@ body.map-page {
     flex: 1;
     position: relative;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible; /* Changed from hidden to visible */
 }
 
-/* Map fills the stage */
+/* Map fills the stage completely now */
 .map-page #map {
     width: 100%;
     height: 100%;
@@ -1801,35 +2095,6 @@ body.map-page {
     bottom: 0;
 }
 
-/* Birth data summary at bottom - RESTORE DISPLAY */
-.map-page .data-summary {
-    display: block !important;
-    flex-shrink: 0;
-    margin: 0;
-    padding: 15px 20px;
-    background: rgba(10, 10, 26, 0.8);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.map-page .data-card {
-    margin: 0;
-    padding: 15px;
-}
-
-/* Adjust data grid for horizontal layout */
-.map-page .data-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    justify-content: center;
-}
-
-.map-page .data-item {
-    flex: 0 1 auto;
-    white-space: nowrap;
-}
-
 /* Mobile adjustments */
 @media (max-width: 900px) {
     .map-page .data-grid {
@@ -1838,10 +2103,6 @@ body.map-page {
     
     .map-page .data-item {
         font-size: 0.8rem;
-    }
-    
-    .map-page .data-summary {
-        padding: 10px 15px;
     }
 }
 
