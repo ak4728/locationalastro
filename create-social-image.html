@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Social Share Image</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        #socialCanvas {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .controls {
+            text-align: center;
+        }
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5856eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="canvas-container">
+        <canvas id="socialCanvas" width="1200" height="630"></canvas>
+    </div>
+    
+    <div class="controls">
+        <button onclick="generateImage()">Generate Social Share Image</button>
+        <button onclick="downloadImage()">Download Image</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('socialCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function generateImage() {
+            // Create gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 1200, 630);
+            gradient.addColorStop(0, '#0a0a1a');
+            gradient.addColorStop(0.5, '#1a1a2e');
+            gradient.addColorStop(1, '#16213e');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 1200, 630);
+
+            // Add subtle pattern/texture
+            ctx.globalAlpha = 0.1;
+            for (let i = 0; i < 100; i++) {
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(Math.random() * 1200, Math.random() * 630, Math.random() * 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            // Add planetary orbits/circles for visual interest
+            ctx.strokeStyle = 'rgba(99, 102, 241, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(900, 200, 80, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.strokeStyle = 'rgba(168, 85, 247, 0.3)';
+            ctx.beginPath();
+            ctx.arc(950, 300, 120, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(236, 72, 153, 0.3)';
+            ctx.beginPath();
+            ctx.arc(850, 400, 60, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Add main title
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 64px Inter, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('LocationalAstro', 60, 150);
+
+            // Add subtitle
+            ctx.fillStyle = '#c7d2fe';
+            ctx.font = '32px Inter, sans-serif';
+            ctx.fillText('Discover Your Perfect Places', 60, 200);
+
+            // Add description
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = '24px Inter, sans-serif';
+            const description = 'Create personalized astrocartography maps';
+            ctx.fillText(description, 60, 260);
+            
+            const description2 = 'and see how planets influence locations worldwide';
+            ctx.fillText(description2, 60, 295);
+
+            // Add call-to-action
+            ctx.fillStyle = '#6366f1';
+            ctx.fillRect(60, 350, 320, 60);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 20px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Start Your Cosmic Journey ✨', 220, 385);
+
+            // Add decorative elements
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.arc(100, 500, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(200, 480, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#10b981';
+            ctx.beginPath();
+            ctx.arc(150, 520, 7, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Add website URL
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '18px Inter, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('locationalastro.com', 60, 580);
+
+            // Add zodiac/star symbols
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.font = '48px serif';
+            ctx.textAlign = 'center';
+            const symbols = ['☾', '☉', '♂', '♃', '♀', '♆'];
+            symbols.forEach((symbol, index) => {
+                const x = 800 + (index % 3) * 80;
+                const y = 500 + Math.floor(index / 3) * 60;
+                ctx.fillText(symbol, x, y);
+            });
+        }
+
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = 'social-share.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // Generate image on page load
+        generateImage();
+    </script>
+</body>
+</html>
