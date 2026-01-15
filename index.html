@@ -3,7 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Astrocartography Map Generator</title>
+    <title>LocationalAstro - Professional Astrocartography Maps</title>
+    
+    <!-- Favicon and Logo Meta Tags -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <meta name="msapplication-TileColor" content="#6366f1">
+    <meta name="theme-color" content="#0a0a1a">
+    
+    <!-- Fonts and Stylesheets -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <link rel="stylesheet" href="styles.css" />
@@ -11,107 +24,260 @@
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Astrocartography Map</h1>
-            <p>Discover where the planets align for you around the world</p>
+    <!-- Navigation Header -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <img src="logo-small.png" alt="LocationalAstro" class="logo-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
+                <span class="logo-fallback" style="display:none">✨</span>
+                <span class="brand-text">LocationalAstro</span>
+            </div>
+            <div class="nav-links">
+                <a href="#map-section" class="nav-link active">Create Map</a>
+                <a href="#about" class="nav-link">About</a>
+            </div>
         </div>
+    </nav>
 
-        <div class="main-content">
-            <div class="sidebar">
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">Professional Astrocartography Maps</h1>
+            <p class="hero-subtitle">Discover your cosmic connections across the globe. Explore how planetary energies influence different locations for personal growth, career, relationships, and spiritual development.</p>
+            <button class="cta-button" onclick="document.getElementById('map-section').scrollIntoView({behavior: 'smooth'})">Create Your Map</button>
+        </div>
+        <div class="hero-visual">
+            <div class="planet-orbit">
+                <div class="planet">🌟</div>
+            </div>
+        </div>
+        
+        <!-- Animated Stars -->
+        <div class="floating-stars">
+            <div class="star star-1">✨</div>
+            <div class="star star-2">⭐</div>
+            <div class="star star-3">🌌</div>
+            <div class="star star-4">✨</div>
+            <div class="star star-5">✴️</div>
+            <div class="star star-6">🌟</div>
+        </div>
+    </section>
+
+    <!-- Main Map Section -->
+    <section id="map-section" class="map-section">
+        <!-- Animated Background Elements -->
+        <div class="cosmic-bg">
+            <div class="constellation constellation-1">
+                <div class="constellation-star"></div>
+                <div class="constellation-star"></div>
+                <div class="constellation-star"></div>
+            </div>
+            <div class="constellation constellation-2">
+                <div class="constellation-star"></div>
+                <div class="constellation-star"></div>
+                <div class="constellation-star"></div>
+                <div class="constellation-star"></div>
+            </div>
+        </div>
+        
+        <div class="container">
+
+            <div class="section-header">
                 <h2>Birth Information</h2>
-                
-                <div class="form-group">
-                    <label>📅 Birth Date</label>
-                    <input type="date" id="birthDate" value="1986-07-31" required>
-                </div>
-
-                <div class="form-group">
-                    <label>⏰ Birth Time (Local)</label>
-                    <input type="time" id="birthTime" value="13:30" step="1" required>
-                </div>
-
-                <div class="form-group">
-                    <label>📍 Birth Location</label>
-                    <div id="locationGeocoderContainer"></div>
-                    <input type="text" id="birthLocation" value="Istanbul, Turkey" style="display: none;">
-                </div>
-
-                <div class="form-group">
-                    <label>🌍 Coordinate System</label>
-                    <select id="coordinateSystem" class="form-select">
-                        <option value="mundo">Mundo (Local Space)</option>
-                        <option value="zodio" selected>Zodio (In Zodiac)</option>
-                    </select>
-                    <small style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-top: 5px; display: block;">Zodio matches most astrology sites like Astro-Seek</small>
-                </div>
-
-                <div class="form-group" id="coordsGroup" style="display: none;">
-                    <label>Coordinates (auto-detected)</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="number" id="birthLat" step="0.0001" placeholder="Latitude" readonly style="opacity: 0.7;">
-                        <input type="number" id="birthLon" step="0.0001" placeholder="Longitude" readonly style="opacity: 0.7;">
-                    </div>
-                </div>
-
-                <div class="form-group" id="timezoneGroup" style="display: none;">
-                    <label>Timezone (auto-detected)</label>
-                    <input type="text" id="tzDisplay" readonly style="opacity: 0.7;">
-                    <input type="hidden" id="tzOffset" value="3">
-                    <label style="margin-top: 8px; display: flex; align-items: center; font-size: 0.9rem;">
-                        <input type="checkbox" id="lockTimezone" style="margin-right: 8px;"> Lock timezone (disable auto-detection)
-                    </label>
-                </div>
-
-                <button class="btn" id="generateBtn">Generate Map</button>
-                <button class="btn" id="shareBtn" style="margin-top: 10px; background: linear-gradient(45deg, #28a745 0%, #20c997 100%);">Share Map</button>
-                
-                <button type="button" id="toggleTechnical" style="margin-top: 10px; padding: 8px 12px; background: transparent; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.85rem; width: 100%;">Show Technical Details</button>
-
-                <div class="legend" id="legend" style="display: none;">
-                    <h3>Planetary Lines</h3>
-                    <div class="legend-grid">
-                        <div class="line-type">
-                            <strong>AC</strong>
-                            <span>Ascendant Rising Line</span>
-                        </div>
-                        <div class="line-type">
-                            <strong>DC</strong>
-                            <span>Descendant Setting Line</span>
-                        </div>
-                        <div class="line-type">
-                            <strong>MC</strong>
-                            <span>Midheaven Culmination</span>
-                        </div>
-                        <div class="line-type">
-                            <strong>IC</strong>
-                            <span>Imum Coeli Lower Culmination</span>
-                        </div>
-                    </div>
-                    
-                    <div class="planet-list" id="planetList"></div>
-                    
-                    <div style="margin-top: 15px; padding: 10px; background: rgba(255,165,0,0.1); border: 1px solid rgba(255,165,0,0.3); border-radius: 8px; font-size: 0.8rem; color: rgba(255,255,255,0.8);">
-                        <strong>⚠️ Accuracy Note:</strong> Planet positions use approximate calculations (mean longitude + β=0). For professional accuracy matching Astro-Seek exactly, Swiss Ephemeris would be needed. The Zodio coordinate system provides closer alignment with commercial astrology software.
-                    </div>
-                </div>
+                <p>Enter your birth details to generate your personalized astrocartography map</p>
             </div>
 
-            <div class="map-container">
-                <div id="map"></div>
-                
-                <div class="info-box" id="infoBox" style="display: none;">
-                    <h4>About Your Astrocartography Map</h4>
-                    <p>
-                        Your astrocartography map shows planetary lines across the world. Each line represents 
-                        where a planet was on a specific angle (AC/DC/MC/IC) at your time of birth. Locations near these 
-                        lines may have special significance for you, influencing different life areas depending on the 
-                        planet and angle. Hover over any line to see details about that planetary influence.
-                    </p>
+            <div class="map-interface">
+                <div class="control-panel">
+                    <div class="form-card">
+                        <div class="form-section">
+                            <h3>📅 Birth Details</h3>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="birthDate">Birth Date</label>
+                                    <input type="date" id="birthDate" value="1986-07-31" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="birthTime">Birth Time</label>
+                                    <input type="time" id="birthTime" value="13:30" step="1" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="birthLocation">📍 Birth Location</label>
+                                <div id="locationGeocoderContainer"></div>
+                                <input type="text" id="birthLocation" value="Istanbul, Turkey" style="display: none;">
+                            </div>
+
+                            <div class="form-group coordinates-group" id="coordsGroup" style="display: none;">
+                                <label>Coordinates (auto-detected)</label>
+                                <div class="coordinates-input">
+                                    <input type="number" id="birthLat" step="0.0001" placeholder="Latitude" readonly>
+                                    <input type="number" id="birthLon" step="0.0001" placeholder="Longitude" readonly>
+                                </div>
+                            </div>
+
+                            <div class="form-group timezone-group" id="timezoneGroup" style="display: none;">
+                                <label>Timezone (auto-detected)</label>
+                                <input type="text" id="tzDisplay" readonly>
+                                <input type="hidden" id="tzOffset" value="3">
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="lockTimezone">
+                                    <label for="lockTimezone">Lock timezone (disable auto-detection)</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3>⚙️ Map Settings</h3>
+                            
+                            <div class="form-group">
+                                <label for="coordinateSystem">Coordinate System</label>
+                                <select id="coordinateSystem" class="form-select">
+                                    <option value="mundo">Mundo (Local Space)</option>
+                                    <option value="zodio" selected>Zodio (In Zodiac)</option>
+                                </select>
+                                <small class="help-text">Zodio matches most astrology sites like Astro-Seek</small>
+                            </div>
+
+                            <div class="action-buttons">
+                                <button class="btn btn-primary" id="generateBtn">
+                                    <span>✨</span> Generate Map
+                                </button>
+                                <button class="btn btn-secondary" id="shareBtn">
+                                    <span>🔗</span> Share Map
+                                </button>
+                            </div>
+
+                            <button type="button" class="btn btn-outline" id="toggleTechnical">
+                                <span>🔭</span> Technical Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="map-panel">
+                    <div class="map-header">
+                        <h3>Your Astrocartography Map</h3>
+                        <p>Planetary influences across the globe</p>
+                    </div>
+                    <div id="map" class="astro-map"></div>
+                    
+                    <!-- Legend Panel - moved from sidebar -->
+                    <div class="map-legend-panel" id="legend" style="display: none;">
+                        <div class="legend-header">
+                            <h3>📍 Planetary Lines Guide</h3>
+                            <button class="legend-toggle" id="legendToggle">
+                                <span>📖</span> Show/Hide Legend
+                            </button>
+                        </div>
+                        
+                        <div class="legend-content">
+                            <div class="legend-grid">
+                                <div class="legend-section">
+                                    <h4>Line Types</h4>
+                                    <div class="line-types">
+                                        <div class="line-type">
+                                            <strong>AC</strong> <span>Ascendant - Rising Line</span>
+                                        </div>
+                                        <div class="line-type">
+                                            <strong>DC</strong> <span>Descendant - Setting Line</span>
+                                        </div>
+                                        <div class="line-type">
+                                            <strong>MC</strong> <span>Midheaven - Culmination</span>
+                                        </div>
+                                        <div class="line-type">
+                                            <strong>IC</strong> <span>Imum Coeli - Lower Culmination</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="legend-section">
+                                    <h4>Planetary Lines</h4>
+                                    <div class="planet-list" id="planetList"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="accuracy-note">
+                                <div class="note-icon">⚠️</div>
+                                <div class="note-content">
+                                    <strong>Accuracy Note:</strong> Positions use approximate calculations. 
+                                    For professional accuracy, Swiss Ephemeris would be needed. 
+                                    Zodio system provides closer alignment with commercial astrology software.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-panel" id="infoBox" style="display: none;">
+                        <div class="info-icon">ℹ️</div>
+                        <div class="info-content">
+                            <h4>Understanding Your Map</h4>
+                            <p>
+                                Each line represents where a planet was positioned at a specific angle 
+                                during your birth. Locations near these lines may hold special significance, 
+                                influencing different aspects of life depending on the planet and angle. 
+                                Hover over lines for detailed information.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about-section">
+        <div class="container">
+            <div class="about-content">
+                <h2>What is Astrocartography?</h2>
+                <div class="about-grid">
+                    <div class="about-card">
+                        <div class="card-decoration">
+                            <span class="floating-icon">🌌</span>
+                        </div>
+                        <div class="card-icon">🌍</div>
+                        <h3>Location-Based Astrology</h3>
+                        <p>Discover how different locations around the world can influence your life based on your birth chart.</p>
+                    </div>
+                    <div class="about-card">
+                        <div class="card-decoration">
+                            <span class="floating-icon">✨</span>
+                        </div>
+                        <div class="card-icon">✨</div>
+                        <h3>Planetary Influences</h3>
+                        <p>Each planetary line represents different energies and life themes activated in specific geographic regions.</p>
+                    </div>
+                    <div class="about-card">
+                        <div class="card-decoration">
+                            <span class="floating-icon">🌟</span>
+                        </div>
+                        <div class="card-icon">🧭</div>
+                        <h3>Personal Growth</h3>
+                        <p>Use astrocartography to make informed decisions about travel, relocation, and personal development.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <img src="logo-small.png" alt="LocationalAstro" class="logo-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
+                    <span class="logo-fallback" style="display:none">✨</span>
+                    <span class="brand-text">LocationalAstro</span>
+                </div>
+                <div class="footer-text">
+                    <p>Professional astrocartography mapping tool for cosmic exploration.</p>
+                    <p class="copyright">&copy; 2026 LocationalAstro. Crafted with cosmic energy.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
     <script src="script.js"></script>

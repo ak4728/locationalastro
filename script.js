@@ -11,6 +11,54 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     noWrap: false
 }).addTo(map);
 
+// Smooth scrolling navigation
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle navigation links
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (this.getAttribute('href').startsWith('#')) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                
+                if (targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    
+                    // Update active nav link
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                }
+            }
+        });
+    });
+    
+    // Handle scroll spy for navigation
+    const observerOptions = {
+        root: null,
+        rootMargin: '-100px 0px -70% 0px',
+        threshold: 0
+    };
+    
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const id = entry.target.getAttribute('id');
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+                });
+            }
+        });
+    }, observerOptions);
+    
+    // Observe sections
+    document.querySelectorAll('section[id]').forEach(section => {
+        observer.observe(section);
+    });
+});
+
 // Initialize location geocoder control
 var geocoder = L.Control.Geocoder.nominatim({
     geocodingQueryParams: {
@@ -19,7 +67,46 @@ var geocoder = L.Control.Geocoder.nominatim({
     }
 });
 
+// Enhanced geocoder functionality for new design
 document.addEventListener('DOMContentLoaded', function() {
+    // Wait a bit to ensure DOM is fully loaded
+    setTimeout(initializeGeocoderInput, 100);
+    
+    // Initialize legend toggle functionality
+    initializeLegendToggle();
+});
+
+function initializeLegendToggle() {
+    const legendToggle = document.getElementById('legendToggle');
+    const technicalToggle = document.getElementById('toggleTechnical');
+    const legend = document.getElementById('legend');
+    
+    // Handle legend toggle from the new button
+    if (legendToggle && legend) {
+        legendToggle.addEventListener('click', function() {
+            const isVisible = legend.style.display !== 'none';
+            legend.style.display = isVisible ? 'none' : 'block';
+            
+            // Update button text
+            const icon = this.querySelector('span');
+            if (icon) {
+                icon.textContent = isVisible ? '📖' : '📜';
+            }
+        });
+    }
+    
+    // Handle technical details toggle (keep existing functionality)
+    if (technicalToggle && legend) {
+        technicalToggle.addEventListener('click', function() {
+            const isVisible = legend.style.display !== 'none';
+            legend.style.display = isVisible ? 'none' : 'block';
+            
+            this.textContent = isVisible ? '🔭 Show Technical Details' : '🔭 Hide Technical Details';
+        });
+    }
+}
+
+function initializeGeocoderInput() {
     var container = document.getElementById('locationGeocoderContainer');
     if (container) {
         // Create a proper geocoder input field
@@ -29,31 +116,24 @@ document.addEventListener('DOMContentLoaded', function() {
         
         var input = document.createElement('input');
         input.type = 'text';
-        input.placeholder = 'Type to search for your birth location...';
+        input.placeholder = 'Search for your birth location...';
         input.className = 'geocoder-input';
-        input.style.cssText = `
-            width: 100%;
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        `;
         
         var resultsDiv = document.createElement('div');
         resultsDiv.className = 'geocoder-results';
         resultsDiv.style.cssText = `
-            background: rgba(26, 26, 46, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
             margin-top: 5px;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(20px);
             max-height: 200px;
             overflow-y: auto;
             display: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--card-shadow);
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
         `;
         
         geocoderDiv.appendChild(input);
@@ -95,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-});
+}
 
 let _geoAbort = null;
 
