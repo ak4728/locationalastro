@@ -1571,8 +1571,11 @@ function generateMap() {
         }
     }
 
-    // Show the generated map and bottom legend
-    document.getElementById('map-stage').style.display = 'block';
+    // Show the generated map container
+    const mapContainer = document.getElementById('map-container') || document.querySelector('.map-panel');
+    if (mapContainer) {
+        mapContainer.style.display = 'block';
+    }
     
     // Show legend toggle button
     const legendToggle = document.getElementById('legendToggle');
@@ -1718,7 +1721,7 @@ let currentMap;
 
 function scrollToMap() {
     const mapSection = document.getElementById('map-stage');
-    mapSection.scrollIntoView({ behavior: 'smooth' });
+    if (mapSection) mapSection.scrollIntoView({ behavior: 'smooth' });
 }
 
 // Bottom floating legend panel toggle
