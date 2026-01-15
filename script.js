@@ -1571,8 +1571,23 @@ function generateMap() {
         }
     }
 
-    document.getElementById('legend').style.display = 'block';
-    document.getElementById('infoBox').style.display = 'block';
+    // Show the generated map and bottom legend
+    document.getElementById('map-stage').style.display = 'block';
+    
+    // Show legend toggle button
+    const legendToggle = document.getElementById('legendToggle');
+    if (legendToggle) {
+        legendToggle.style.display = 'block';
+    }
+    
+    mapGenerated = true;
+    const generateButton = document.getElementById('generateBtn');
+    if (generateButton) {
+        generateButton.textContent = 'Update Map';
+        generateButton.style.background = 'var(--logo-mid)';
+    }
+    
+    scrollToMap();
 }
 
 function getTimezone(lat, lon) {
@@ -1697,6 +1712,28 @@ document.getElementById('toggleTechnical').addEventListener('click', function() 
     this.textContent = isVisible ? 'Show Technical Details' : 'Hide Technical Details';
 });
 
+// Map display functionality
+let mapGenerated = false;
+let currentMap;
+
+function scrollToMap() {
+    const mapSection = document.getElementById('map-stage');
+    mapSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Bottom floating legend panel toggle
+document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('legendToggle');
+    var panel = document.getElementById('legendPanel');
+    if (!btn || !panel) return;
+    
+    btn.addEventListener('click', function () {
+        var open = panel.classList.toggle('open');
+        panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+        btn.textContent = open ? 'Hide legend' : 'Legend';
+    });
+});
+
 // Add event listeners for buttons
 document.getElementById('generateBtn').addEventListener('click', function() {
     generateMap();
@@ -1731,4 +1768,15 @@ window.addEventListener('load', function() {
         var defaultLocation = document.getElementById('birthLocation').value;
         // Note: geocoding is now handled by the interactive geocoder input
     }
+});// Bottom floating legend panel toggle (improved version)
+document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('legendToggle');
+    var panel = document.getElementById('legendPanel');
+    if (!btn || !panel) return;
+    
+    btn.addEventListener('click', function () {
+        var open = panel.classList.toggle('open');
+        panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+        btn.textContent = open ? 'Hide legend' : 'Legend';
+    });
 });

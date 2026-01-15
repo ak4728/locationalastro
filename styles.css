@@ -13,14 +13,20 @@
     --primary-purple: #6366f1;
     --secondary-purple: #8b5cf6;
     --accent-gold: #fbbf24;
-    --text-primary: #ffffff;
-    --text-secondary: #a1a1aa;
-    --text-muted: #71717a;
+    --logo-purple: #7c3aed;
+    --logo-gold: #f59e0b;
+    --logo-light: #a78bfa;
+    --logo-accent: #eab308;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-accent: var(--logo-gold);
     --border-color: rgba(255, 255, 255, 0.1);
     --glass-bg: rgba(255, 255, 255, 0.05);
     --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    --gradient-secondary: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+    --gradient-primary: linear-gradient(135deg, var(--logo-purple) 0%, var(--primary-purple) 100%);
+    --gradient-secondary: linear-gradient(135deg, var(--logo-gold) 0%, var(--accent-gold) 100%);
+    --gradient-accent: linear-gradient(135deg, var(--logo-light) 0%, var(--logo-accent) 100%);
 }
 
 body {
@@ -109,7 +115,7 @@ body {
 
 /* Hero Section */
 .hero {
-    padding: 8rem 2rem 6rem;
+    padding: 8rem 2rem 8rem;
     text-align: center;
     position: relative;
     overflow: hidden;
@@ -145,10 +151,13 @@ body {
         radial-gradient(circle at 50% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
         linear-gradient(to bottom, 
             transparent 0%,
-            transparent 60%,
-            rgba(10, 10, 26, 0.3) 75%,
+            transparent 40%,
+            rgba(10, 10, 26, 0.1) 50%,
+            rgba(10, 10, 26, 0.3) 65%,
+            rgba(10, 10, 26, 0.5) 75%,
             rgba(10, 10, 26, 0.7) 85%,
-            rgba(10, 10, 26, 0.9) 95%,
+            rgba(10, 10, 26, 0.85) 92%,
+            rgba(10, 10, 26, 0.95) 97%,
             var(--primary-bg) 100%
         );
     pointer-events: none;
@@ -375,7 +384,8 @@ body {
     position: relative;
     overflow: hidden;
     background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 50%, var(--accent-bg) 100%);
-    margin-top: -2rem;
+    margin-top: -4rem;
+    z-index: 10;
 }
 
 /* Cosmic Background Animation */
@@ -487,7 +497,7 @@ body {
     font-size: 2.5rem;
     font-weight: 700;
     margin-bottom: 1rem;
-    background: var(--gradient-primary);
+    background: var(--gradient-accent);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -534,7 +544,7 @@ body {
     font-size: 1.1rem;
     font-weight: 600;
     margin-bottom: 1.5rem;
-    color: var(--text-primary);
+    color: var(--logo-light);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -801,6 +811,98 @@ body {
     flex: 1;
     min-height: 500px;
     background: #1a1a2e;
+}
+
+.map-stage {
+    position: relative;
+}
+
+/* Bottom floating toggle button */
+.legend-toggle {
+    position: absolute;
+    left: 14px;
+    bottom: 14px;
+    z-index: 1200;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(20, 24, 48, 0.75);
+    color: white;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.legend-toggle:hover {
+    background: rgba(30, 34, 58, 0.85);
+    border-color: rgba(255,255,255,0.4);
+}
+
+/* Bottom floating panel */
+.legend-panel {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 56px; /* sits above the toggle */
+    z-index: 1200;
+    
+    max-height: 32vh;
+    overflow: auto;
+    
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(20, 24, 48, 0.85);
+    backdrop-filter: blur(10px);
+    
+    display: none;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(20, 24, 48, 0.85);
+    backdrop-filter: blur(10px);
+    display: none;
+    box-shadow: var(--card-shadow);
+}
+
+.legend-panel.open {
+    display: block;
+}
+
+.legend-panel h3 {
+    margin: 0 0 12px 0;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.legend-panel .legend-grid {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.legend-panel .line-type {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+}
+
+.legend-panel .line-type strong {
+    color: var(--accent-gold);
+    min-width: 20px;
+    font-weight: 700;
+}
+
+@media (max-width: 900px) {
+    .legend-panel {
+        right: 10px;
+        left: 10px;
+        width: auto;
+        max-height: 45vh;
+    }
 }
 
 .info-panel {
@@ -1339,4 +1441,72 @@ body {
 * {
     scrollbar-width: thin;
     scrollbar-color: var(--border-color) var(--glass-bg);
+}
+
+/* SEO Section Styles */
+.seo-section {
+    margin-top: 22px;
+    padding: 18px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+}
+
+.seo-section h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.25rem;
+    color: var(--text-primary);
+}
+
+.seo-section h3 {
+    margin-top: 14px;
+    margin-bottom: 8px;
+    font-size: 1.05rem;
+    color: var(--logo-light);
+}
+
+.seo-section p, .seo-section li {
+    color: rgba(255,255,255,0.85);
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+
+.seo-section ul, .seo-section ol {
+    padding-left: 20px;
+    margin-bottom: 14px;
+}
+
+.seo-section details {
+    margin-top: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 0;
+}
+
+.seo-section summary {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    transition: background 0.2s ease;
+}
+
+.seo-section summary:hover {
+    background: rgba(255,255,255,0.06);
+}
+
+.seo-section details[open] summary {
+    border-radius: 8px 8px 0 0;
+}
+
+.seo-section details p {
+    padding: 10px 12px;
+    margin: 0;
+}
+
+/* Prevent the panel from covering the attribution text too much */
+.leaflet-control-attribution {
+    margin-bottom: 36px;
 }

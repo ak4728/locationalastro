@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LocationalAstro - Amateur Location Astrology Maps</title>
-    <meta name="description" content="Create personalized location astrology maps. Discover how planetary energies influence different locations worldwide for personal growth, career, and relationships.">
+    <title>Astrology and Cartography Map, Planetary Lines by Birth Time</title>
+    <meta name="description" content="Interactive astrology map that draws planetary lines worldwide using your birth date, local time, and location. Explore rising, setting, overhead, and underfoot lines and hover for interpretations.">
     <meta name="keywords" content="astrocartography, location astrology, birth chart, planetary lines, astrology map, cosmic influences, relocation astrology">
     <meta name="author" content="LocationalAstro">
     <meta name="robots" content="index, follow">
@@ -76,6 +76,18 @@
     {
         "@context": "https://schema.org",
         "@type": "WebApplication",
+        "name": "Astrology and Cartography Map",
+        "applicationCategory": "LifestyleApplication",
+        "operatingSystem": "Web",
+        "description": "Interactive astrology map that draws planetary lines worldwide from birth date, local time, and location."
+    }
+    </script>
+    
+    <!-- Previous Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
         "name": "LocationalAstro",
         "description": "Amateur location astrology mapping tool for creating personalized astrocartography maps",
         "url": "https://locationalastro.com",
@@ -116,7 +128,7 @@
     <section class="hero">
         <div class="hero-content">
             <h1 class="hero-title">Amateur Location Astrology Maps</h1>
-            <p class="hero-subtitle">Discover your cosmic connections across the globe. Explore how planetary energies influence different locations for personal growth, career, relationships, and spiritual development.</p>
+            <p class="hero-subtitle">Explore how astrology and cartography connect, by mapping planetary angles worldwide. Discover cosmic influences across different locations for personal growth, career, relationships, and spiritual development.</p>
             <button class="cta-button" onclick="document.getElementById('map-section').scrollIntoView({behavior: 'smooth'})">Create Your Map</button>
         </div>
         <div class="hero-visual">
@@ -235,66 +247,62 @@
                         <h3>Your Location Astrology Map</h3>
                         <p>Planetary influences across the globe</p>
                     </div>
-                    <div id="map" class="astro-map"></div>
                     
-                    <!-- Legend Panel - moved from sidebar -->
-                    <div class="map-legend-panel" id="legend" style="display: none;">
-                        <div class="legend-header">
-                            <h3>📍 Planetary Lines Guide</h3>
-                            <button class="legend-toggle" id="legendToggle">
-                                <span>📖</span> Show/Hide Legend
-                            </button>
-                        </div>
-                        
-                        <div class="legend-content">
+                    <div class="map-stage">
+                        <div id="map" class="astro-map"></div>
+
+                        <button id="legendToggle" class="legend-toggle" type="button">
+                            Legend
+                        </button>
+
+                        <aside class="legend-panel" id="legendPanel" aria-hidden="true">
+                            <h3>Planetary Lines</h3>
                             <div class="legend-grid">
-                                <div class="legend-section">
-                                    <h4>Line Types</h4>
-                                    <div class="line-types">
-                                        <div class="line-type">
-                                            <strong>AC</strong> <span>Ascendant - Rising Line</span>
-                                        </div>
-                                        <div class="line-type">
-                                            <strong>DC</strong> <span>Descendant - Setting Line</span>
-                                        </div>
-                                        <div class="line-type">
-                                            <strong>MC</strong> <span>Midheaven - Culmination</span>
-                                        </div>
-                                        <div class="line-type">
-                                            <strong>IC</strong> <span>Imum Coeli - Lower Culmination</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="legend-section">
-                                    <h4>Planetary Lines</h4>
-                                    <div class="planet-list" id="planetList"></div>
-                                </div>
+                                <div class="line-type"><strong>AC</strong><span>Rising line</span></div>
+                                <div class="line-type"><strong>DC</strong><span>Setting line</span></div>
+                                <div class="line-type"><strong>MC</strong><span>Overhead line</span></div>
+                                <div class="line-type"><strong>IC</strong><span>Underfoot line</span></div>
                             </div>
-                            
-                            <div class="accuracy-note">
-                                <div class="note-icon">⚠️</div>
-                                <div class="note-content">
-                                    <strong>Accuracy Note:</strong> Positions use approximate calculations. 
-                                    For professional accuracy, Swiss Ephemeris would be needed. 
-                                    Zodio system provides closer alignment with commercial astrology software.
-                                </div>
-                            </div>
-                        </div>
+                            <div class="planet-list" id="planetList"></div>
+                        </aside>
                     </div>
                     
-                    <div class="info-panel" id="infoBox" style="display: none;">
-                        <div class="info-icon">ℹ️</div>
-                        <div class="info-content">
-                            <h4>Understanding Your Map</h4>
+                    <section class="seo-section" id="how-it-works">
+                        <h2>Astrology and Cartography, Mapped Together</h2>
+                        <p>
+                            This page generates an interactive astrology map using your birth date, local birth time, and birth location.
+                            It draws planetary lines that show where each planet was rising, setting, overhead, or underfoot at your birth moment.
+                        </p>
+
+                        <h3>What the lines mean</h3>
+                        <ul>
+                            <li><strong>Rising line</strong>, where a planet was on the eastern horizon.</li>
+                            <li><strong>Setting line</strong>, where a planet was on the western horizon.</li>
+                            <li><strong>Overhead line</strong>, where a planet was at local culmination.</li>
+                            <li><strong>Underfoot line</strong>, where a planet was at the opposite point below the horizon.</li>
+                        </ul>
+
+                        <h3>How to use the map</h3>
+                        <ol>
+                            <li>Enter your birth information and generate the map.</li>
+                            <li>Hover any line to see the planet and angle interpretation.</li>
+                            <li>Explore cities near a line to compare themes for career, relationships, home life, and personal growth.</li>
+                        </ol>
+
+                        <h3>Common questions</h3>
+                        <details>
+                            <summary>Is this the same as a birth chart</summary>
                             <p>
-                                Each line represents where a planet was positioned at a specific angle 
-                                during your birth. Locations near these lines may hold special significance, 
-                                influencing different aspects of life depending on the planet and angle. 
-                                Hover over lines for detailed information.
+                                It uses the same birth data, but instead of showing planets in a single chart wheel, it maps planetary angles across locations worldwide.
                             </p>
-                        </div>
-                    </div>
+                        </details>
+                        <details>
+                            <summary>Does a line mean good or bad</summary>
+                            <p>
+                                A line means the planet is emphasized in that location. The effect depends on the planet, the angle, and what you are trying to support in your life.
+                            </p>
+                        </details>
+                    </section>
                 </div>
             </div>
         </div>
