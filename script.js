@@ -3040,7 +3040,11 @@ function initializeLanguage() {
         }
         langBtn.setAttribute('data-lang', currentLang === 'en' ? 'tr' : 'en');
         
-        langBtn.addEventListener('click', function() {
+        // Remove any existing event listeners and add new one
+        var newLangBtn = langBtn.cloneNode(true);
+        langBtn.parentNode.replaceChild(newLangBtn, langBtn);
+        
+        newLangBtn.addEventListener('click', function() {
             var targetLang = this.getAttribute('data-lang');
             switchLanguage(targetLang);
         });
