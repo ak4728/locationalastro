@@ -277,6 +277,45 @@
                                 <input type="text" id="birthLocation" value="Istanbul, Turkey" style="display: none;">
                             </div>
 
+                            <div class="form-group coordinates-group" id="coordsGroup" style="display: none;">
+                                <label>Coordinates (auto-detected)</label>
+                                <div class="coordinates-input">
+                                    <input type="number" id="birthLat" step="any" placeholder="Latitude" readonly>
+                                    <input type="number" id="birthLon" step="any" placeholder="Longitude" readonly>
+                                </div>
+                            </div>
+
+                            <div class="form-group" id="timezoneGroup" style="display: none;">
+                                <label for="tzDisplay"> Timezone</label>
+                                <input type="text" id="tzDisplay" readonly>
+                                <input type="hidden" id="tzOffset">
+                                <label>
+                                    <input type="checkbox" id="lockTimezone"> Lock timezone
+                                </label>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="coordinateSystem"> Coordinate System</label>
+                                <select id="coordinateSystem">
+                                    <option value="geodetic">Geodetic (Standard)</option>
+                                    <option value="zodio">Zodio (Alternative)</option>
+                                </select>
+                            </div>
+
+                            <button id="generateBtn" class="cta-button" type="button">
+                                 Generate Your Map
+                            </button>
+                            
+                            <div class="form-actions">
+                                <button id="shareBtn" type="button" class="share-button">
+                                     Share Configuration
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 
     <!-- About Section -->
