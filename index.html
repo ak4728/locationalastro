@@ -3,13 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LocationalAstro - Professional Astrocartography Maps</title>
+    <title>LocationalAstro - Amateur Location Astrology Maps</title>
+    <meta name="description" content="Create personalized location astrology maps. Discover how planetary energies influence different locations worldwide for personal growth, career, and relationships.">
+    <meta name="keywords" content="astrocartography, location astrology, birth chart, planetary lines, astrology map, cosmic influences, relocation astrology">
+    <meta name="author" content="LocationalAstro">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://locationalastro.com/">
+    
+    <!-- Google Search Console Verification (replace content with your verification code) -->
+    <meta name="google-site-verification" content="YOUR_GOOGLE_SEARCH_CONSOLE_VERIFICATION_CODE">
+    
+    <!-- Google Analytics / Site Kit (replace with your measurement ID) -->
+    <meta name="google-analytics" content="G-652WT4X6XV">
+    
+    <!-- Open Graph / Facebook Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="LocationalAstro - Amateur Location Astrology Maps">
+    <meta property="og:description" content="Create personalized location astrology maps. Discover how planetary energies influence different locations worldwide.">
+    <meta property="og:image" content="https://locationalastro.com/images/logo-large.png">
+    <meta property="og:url" content="https://locationalastro.com/">
+    <meta property="og:site_name" content="LocationalAstro">
+    <meta property="og:locale" content="en_US">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="LocationalAstro - Amateur Location Astrology Maps">
+    <meta name="twitter:description" content="Create personalized location astrology maps. Discover cosmic influences worldwide.">
+    <meta name="twitter:image" content="https://locationalastro.com/images/logo-large.png">
+    <meta name="twitter:site" content="@locationalastro">
+    
+    <!-- Additional SEO Meta Tags -->
+    <meta name="application-name" content="LocationalAstro">
+    <meta name="apple-mobile-web-app-title" content="LocationalAstro">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Sitemap Reference -->
+    <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml">
     
     <!-- Favicon and Logo Meta Tags -->
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
     <meta name="msapplication-TileColor" content="#6366f1">
     <meta name="theme-color" content="#0a0a1a">
     
@@ -22,13 +60,48 @@
     <link rel="stylesheet" href="styles.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-652WT4X6XV"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+    
+      gtag('config', 'G-652WT4X6XV');
+    </script>
+    
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "LocationalAstro",
+        "description": "Amateur location astrology mapping tool for creating personalized astrocartography maps",
+        "url": "https://locationalastro.com",
+        "applicationCategory": "LifestyleApplication",
+        "operatingSystem": "Web",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "creator": {
+            "@type": "Organization",
+            "name": "LocationalAstro",
+            "url": "https://locationalastro.com"
+        },
+        "keywords": "astrocartography, location astrology, birth chart, planetary lines, astrology map, cosmic influences, relocation astrology",
+        "screenshot": "https://locationalastro.com/images/logo-large.png"
+    }
+    </script>
 </head>
 <body>
     <!-- Navigation Header -->
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
-                <img src="logo-small.png" alt="LocationalAstro" class="logo-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
+                <img src="images/logo-small.png" alt="LocationalAstro" class="logo-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
                 <span class="logo-fallback" style="display:none">✨</span>
                 <span class="brand-text">LocationalAstro</span>
             </div>
@@ -42,7 +115,7 @@
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
-            <h1 class="hero-title">Professional Astrocartography Maps</h1>
+            <h1 class="hero-title">Amateur Location Astrology Maps</h1>
             <p class="hero-subtitle">Discover your cosmic connections across the globe. Explore how planetary energies influence different locations for personal growth, career, relationships, and spiritual development.</p>
             <button class="cta-button" onclick="document.getElementById('map-section').scrollIntoView({behavior: 'smooth'})">Create Your Map</button>
         </div>
@@ -159,7 +232,7 @@
 
                 <div class="map-panel">
                     <div class="map-header">
-                        <h3>Your Astrocartography Map</h3>
+                        <h3>Your Location Astrology Map</h3>
                         <p>Planetary influences across the globe</p>
                     </div>
                     <div id="map" class="astro-map"></div>
@@ -231,7 +304,7 @@
     <section id="about" class="about-section">
         <div class="container">
             <div class="about-content">
-                <h2>What is Astrocartography?</h2>
+                <h2>What is Location Astrology?</h2>
                 <div class="about-grid">
                     <div class="about-card">
                         <div class="card-decoration">
@@ -255,7 +328,9 @@
                         </div>
                         <div class="card-icon">🧭</div>
                         <h3>Personal Growth</h3>
-                        <p>Use astrocartography to make informed decisions about travel, relocation, and personal development.</p>
+                            <p>
+                                Use location astrology to make informed decisions about travel, relocation, and personal development.
+                            </p>
                     </div>
                 </div>
             </div>
@@ -267,12 +342,12 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-brand">
-                    <img src="logo-small.png" alt="LocationalAstro" class="logo-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
+                    <img src="images/logo-small.png" alt="LocationalAstro" class="logo-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
                     <span class="logo-fallback" style="display:none">✨</span>
                     <span class="brand-text">LocationalAstro</span>
                 </div>
                 <div class="footer-text">
-                    <p>Professional astrocartography mapping tool for cosmic exploration.</p>
+                    <p>Amateur location astrology mapping tool for cosmic exploration.</p>
                     <p class="copyright">&copy; 2026 LocationalAstro. Crafted with cosmic energy.</p>
                 </div>
             </div>
