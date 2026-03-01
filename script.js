@@ -403,31 +403,16 @@ function getZodiacSign(birthDate) {
 
 // Function to get moon sign (using simplified but working calculation)
 function getMoonSign(birthDate, birthTime, lat, lon) {
-    // Prefer precise calculation when Astronomy library is available
+    // Use precise calculation only. If Astronomy isn't available, return an explicit unknown.
+    var precise = null;
     try {
-        var precise = getMoonSignPrecise(birthDate, birthTime, lat, lon);
-        if (precise) return precise;
+        precise = getMoonSignPrecise(birthDate, birthTime, lat, lon);
     } catch (e) {
-        // fall back to simplified algorithm below
-        console.log('Precise moon calculation failed, falling back:', e);
+        console.log('Precise moon calculation threw:', e);
     }
-
-    try {
-        // simplified fallback: approximate moon longitude based on day and time
-        var date = parseLocalDateTime(birthDate, birthTime);
-        var dayOfMonth = date.getDate();
-        var timeOffset = date.getHours() / 24 + date.getMinutes() / 1440;
-        var moonCycle = ((dayOfMonth + timeOffset) * 13) % 360; // Moon moves ~13 degrees per day
-        var baseOffset = (date.getMonth() * 30 + date.getFullYear() * 365) % 360;
-        var moonPosition = (moonCycle + baseOffset) % 360;
-        var signIndex = Math.floor(((moonPosition % 360) + 360) % 360 / 30) % 12;
-        return zodiacSigns[signIndex];
-    } catch (error) {
-        console.log('Moon sign calculation error:', error);
-        var sunSign = getZodiacSign(birthDate);
-        var sunIndex = zodiacSigns.findIndex(s => s.name === sunSign.name);
-        return zodiacSigns[(sunIndex + 4) % 12]; // Offset by 4 signs
-    }
+    if (precise) return precise;
+    console.log('Astronomy library not available; moon sign unknown for', birthDate, birthTime);
+    return { name: 'Unknown', symbol: '?', traits: '' };
 }
 
 // Precise moon sign using Astronomy library when available (client-side)
