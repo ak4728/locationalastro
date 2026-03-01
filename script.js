@@ -403,29 +403,80 @@ function getZodiacSign(birthDate) {
 
 // Function to get moon sign (using simplified but working calculation)
 function getMoonSign(birthDate, birthTime, lat, lon) {
+    // Prefer precise calculation when Astronomy library is available
     try {
-        var date = new Date(birthDate + 'T' + birthTime);
-        
-        // Simple moon sign calculation based on date patterns
-        // Moon changes signs approximately every 2.5 days
-        var startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+        var precise = getMoonSignPrecise(birthDate, birthTime, lat, lon);
+        if (precise) return precise;
+    } catch (e) {
+        // fall back to simplified algorithm below
+        console.log('Precise moon calculation failed, falling back:', e);
+    }
+
+    try {
+        // simplified fallback: approximate moon longitude based on day and time
+        var date = parseLocalDateTime(birthDate, birthTime);
         var dayOfMonth = date.getDate();
-        var timeOffset = date.getHours() / 24;
-        
-        // Calculate approximate moon position (simplified)
+        var timeOffset = date.getHours() / 24 + date.getMinutes() / 1440;
         var moonCycle = ((dayOfMonth + timeOffset) * 13) % 360; // Moon moves ~13 degrees per day
         var baseOffset = (date.getMonth() * 30 + date.getFullYear() * 365) % 360;
         var moonPosition = (moonCycle + baseOffset) % 360;
-        
-        var signIndex = Math.floor(moonPosition / 30) % 12;
+        var signIndex = Math.floor(((moonPosition % 360) + 360) % 360 / 30) % 12;
         return zodiacSigns[signIndex];
     } catch (error) {
         console.log('Moon sign calculation error:', error);
-        // Return a different sign than sun to show it's working
         var sunSign = getZodiacSign(birthDate);
         var sunIndex = zodiacSigns.findIndex(s => s.name === sunSign.name);
         return zodiacSigns[(sunIndex + 4) % 12]; // Offset by 4 signs
     }
+}
+
+// Precise moon sign using Astronomy library when available (client-side)
+function getMoonSignPrecise(birthDate, birthTime, lat, lon) {
+    try {
+        if (typeof Astronomy === 'undefined' || typeof Astronomy.MoonPosition !== 'function') {
+            // Astronomy not available or API not as expected
+            return null;
+        }
+        var date = parseLocalDateTime(birthDate, birthTime);
+
+        // Astronomy.MoonPosition returns object with ecliptic longitude in degrees
+        // Try common property names to be robust against API variations
+        var pos = Astronomy.MoonPosition(date);
+        var lonDeg = null;
+        if (pos) {
+            lonDeg = pos.lon || pos.longitude || pos.eclipticLongitude || pos.lambda || pos.elongation;
+        }
+        if (lonDeg == null) {
+            // If the returned object uses nested properties, try equatorial->ecliptic conversion
+            if (pos && pos.ecliptic && (pos.ecliptic.lon || pos.ecliptic.longitude)) {
+                lonDeg = pos.ecliptic.lon || pos.ecliptic.longitude;
+            }
+        }
+        if (lonDeg == null) return null;
+        var signIndex = Math.floor(((lonDeg % 360) + 360) % 360 / 30) % 12;
+        return zodiacSigns[signIndex];
+    } catch (err) {
+        console.log('getMoonSignPrecise error:', err);
+        return null;
+    }
+}
+
+// Helper used by moon and rising sign functions to parse local date/time safely
+function parseLocalDateTime(dateStr, timeStr) {
+    if (dateStr instanceof Date) return dateStr;
+    var datePart = String(dateStr || '').split('T')[0];
+    var parts = datePart.split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+        var y = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10) - 1;
+        var d = parseInt(parts[2], 10);
+        if (!timeStr) return new Date(y, m, d);
+        var tparts = String(timeStr).split(':');
+        var hh = parseInt(tparts[0] || '0', 10);
+        var mm = parseInt(tparts[1] || '0', 10);
+        return new Date(y, m, d, hh, mm);
+    }
+    return new Date(dateStr);
 }
 
 // Function to get rising sign (simplified calculation)

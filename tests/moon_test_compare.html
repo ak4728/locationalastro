@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Moon Sign Comparison Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+  <script src="../script.js"></script>
+</head>
+<body>
+  <h1>Moon Sign Comparison (Precise vs Simplified)</h1>
+  <pre id="output"></pre>
+  <script>
+    var tests = [
+      {date: '2026-03-01', time: '00:00', lat: 40.7, lon: -74.0},
+      {date: '2026-02-20', time: '12:00', lat: 51.5, lon: -0.1},
+      {date: '2026-02-15', time: '06:30', lat: 34.05, lon: -118.25},
+      {date: '2021-12-04', time: '18:00', lat: 35.7, lon: 139.7},
+      {date: '1990-07-15', time: '03:45', lat: 52.52, lon: 13.4}
+    ];
+
+    var out = document.getElementById('output');
+    function log(s){ out.textContent += s + '\n'; console.log(s); }
+
+    tests.forEach(function(t){
+      var precise = getMoonSignPrecise(t.date, t.time, t.lat, t.lon);
+      var simple = (function(){ try{ return (typeof getMoonSign === 'function') ? getMoonSign(t.date, t.time, t.lat, t.lon) : null;}catch(e){return null;} })();
+      log(t.date + ' ' + t.time + ' -> precise: ' + (precise ? precise.name : 'N/A') + ' | simple: ' + (simple ? simple.name : 'N/A'));
+    });
+  </script>
+</body>
+</html>
