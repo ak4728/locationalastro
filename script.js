@@ -473,17 +473,25 @@ function parseLocalDateTime(dateStr, timeStr) {
     return new Date(dateStr);
 }
 
-// Function to get rising sign (simplified calculation)
+// Function to get rising sign — prefer precise, fall back to simplified
 function getRisingSign(birthDate, birthTime, lat, lon) {
+    // Try precise calculation first
     try {
-        var date = new Date(birthDate + 'T' + birthTime);
+        var precise = getRisingSignPrecise(birthDate, birthTime, lat, lon);
+        if (precise) return precise;
+    } catch (e) {
+        console.log('Precise rising calculation failed:', e);
+    }
+
+    // Simplified fallback when Astronomy library is not loaded
+    try {
+        var date = parseLocalDateTime(birthDate, birthTime);
         var hour = date.getHours();
         var minute = date.getMinutes();
         
         // Rising sign changes every ~2 hours
         var timeOfDay = hour + (minute / 60);
         
-        // Calculate rising sign based on time and location
         var timeOffset = Math.floor(timeOfDay / 2) % 12;
         var latitudeOffset = Math.floor(Math.abs(lat) / 30) % 12;
         var seasonOffset = Math.floor(date.getMonth() / 3) % 12;
@@ -492,11 +500,51 @@ function getRisingSign(birthDate, birthTime, lat, lon) {
         return zodiacSigns[risingIndex];
     } catch (error) {
         console.log('Rising sign calculation error:', error);
-        // Return a different sign than sun to show it's working
         var sunSign = getZodiacSign(birthDate);
-        var sunIndex = zodiacSigns.findIndex(s => s.name === sunSign.name);
-        return zodiacSigns[(sunIndex + 8) % 12]; // Offset by 8 signs
+        var sunIndex = zodiacSigns.findIndex(function(s) { return s.name === sunSign.name; });
+        return zodiacSigns[(sunIndex + 8) % 12];
     }
+}
+
+// Precise rising sign (Ascendant) using Astronomy library
+// Ascendant = degree of the ecliptic crossing the eastern horizon
+// Formula: ARMC (local sidereal time in degrees) used with obliquity and latitude
+function getRisingSignPrecise(birthDate, birthTime, lat, lon) {
+    if (typeof Astronomy === 'undefined') return null;
+    if (typeof Astronomy.SiderealTime !== 'function') return null;
+
+    var date = parseLocalDateTime(birthDate, birthTime);
+
+    // Get Greenwich Sidereal Time in hours, then convert to local
+    var gst = Astronomy.SiderealTime(date); // hours
+    var lst = (gst + (lon / 15)) % 24;      // local sidereal time in hours
+    if (lst < 0) lst += 24;
+    var armc = lst * 15; // convert hours to degrees (ARMC)
+
+    // Get obliquity of the ecliptic (approx 23.4°, or use Astronomy if available)
+    var obliquity = 23.4393; // mean obliquity, good enough
+    if (typeof Astronomy.Ecliptic === 'function') {
+        try {
+            // Some builds expose obliquity through Ecliptic or similar
+            var ecl = Astronomy.Ecliptic(date);
+            if (ecl && typeof ecl.obliquity === 'number') obliquity = ecl.obliquity;
+        } catch (e) { /* use default */ }
+    }
+
+    var oblRad = obliquity * Math.PI / 180;
+    var latRad = (lat || 0) * Math.PI / 180;
+    var armcRad = armc * Math.PI / 180;
+
+    // Ascendant formula:
+    // asc = atan2(-cos(ARMC), sin(ARMC)*cos(obl) + tan(lat)*sin(obl))
+    var y = -Math.cos(armcRad);
+    var x = Math.sin(armcRad) * Math.cos(oblRad) + Math.tan(latRad) * Math.sin(oblRad);
+    var ascRad = Math.atan2(y, x);
+    var ascDeg = ascRad * 180 / Math.PI;
+    ascDeg = ((ascDeg % 360) + 360) % 360; // normalize to 0-360
+
+    var signIndex = Math.floor(ascDeg / 30) % 12;
+    return zodiacSigns[signIndex];
 }
 
 // Function to display horoscope information

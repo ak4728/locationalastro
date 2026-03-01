@@ -11,6 +11,7 @@ Crawl-delay: 1
 Allow: /locational-astrology.html
 Allow: /map.html
 Allow: /index.html
+Allow: /create-social-image.html
 
 # Disallow certain files/folders if needed
 Disallow: /LOGO-SPECS.md
