@@ -354,7 +354,24 @@ var zodiacSigns = [
 
 // Function to get zodiac sign from date
 function getZodiacSign(birthDate) {
-    var date = new Date(birthDate);
+    // Normalize input to avoid timezone shifts when parsing date-only strings
+    var date;
+    if (birthDate instanceof Date) {
+        date = birthDate;
+    } else {
+        var s = String(birthDate);
+        // If ISO-like date (YYYY-MM-DD or YYYY-MM-DDTHH:MM), take the date part and build local Date
+        var datePart = s.split('T')[0];
+        var parts = datePart.split('-');
+        if (parts.length === 3 && parts[0].length === 4) {
+            var y = parseInt(parts[0], 10);
+            var m = parseInt(parts[1], 10) - 1; // zero-based month
+            var d = parseInt(parts[2], 10);
+            date = new Date(y, m, d);
+        } else {
+            date = new Date(birthDate);
+        }
+    }
     var month = date.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
     var day = date.getDate();
     
