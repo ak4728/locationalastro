@@ -433,25 +433,34 @@ function getMoonSign(birthDate, birthTime, lat, lon) {
 // Precise moon sign using Astronomy library when available (client-side)
 function getMoonSignPrecise(birthDate, birthTime, lat, lon) {
     try {
-        if (typeof Astronomy === 'undefined' || typeof Astronomy.MoonPosition !== 'function') {
-            // Astronomy not available or API not as expected
-            return null;
-        }
+        if (typeof Astronomy === 'undefined') return null;
         var date = parseLocalDateTime(birthDate, birthTime);
 
-        // Astronomy.MoonPosition returns object with ecliptic longitude in degrees
-        // Try common property names to be robust against API variations
-        var pos = Astronomy.MoonPosition(date);
+        // Prefer EclipticGeoMoon (available in astronomy-engine)
+        var pos = null;
+        if (typeof Astronomy.EclipticGeoMoon === 'function') {
+            pos = Astronomy.EclipticGeoMoon(date);
+        } else if (typeof Astronomy.MoonPosition === 'function') {
+            pos = Astronomy.MoonPosition(date);
+        }
+
         var lonDeg = null;
         if (pos) {
             lonDeg = pos.lon || pos.longitude || pos.eclipticLongitude || pos.lambda || pos.elongation;
-        }
-        if (lonDeg == null) {
-            // If the returned object uses nested properties, try equatorial->ecliptic conversion
-            if (pos && pos.ecliptic && (pos.ecliptic.lon || pos.ecliptic.longitude)) {
+            if (lonDeg == null && pos.ecliptic) {
                 lonDeg = pos.ecliptic.lon || pos.ecliptic.longitude;
             }
         }
+
+        // Fallback: try EclipticLongitude(date, Body.Moon) if available
+        if (lonDeg == null && typeof Astronomy.EclipticLongitude === 'function' && Astronomy.Body && Astronomy.Body.Moon) {
+            try {
+                lonDeg = Astronomy.EclipticLongitude(date, Astronomy.Body.Moon);
+            } catch (e) {
+                // ignore
+            }
+        }
+
         if (lonDeg == null) return null;
         var signIndex = Math.floor(((lonDeg % 360) + 360) % 360 / 30) % 12;
         return zodiacSigns[signIndex];
